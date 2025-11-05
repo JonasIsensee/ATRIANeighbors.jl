@@ -90,7 +90,7 @@ if isdefined(Base, Symbol("@main"))
 
     Requires Julia 1.11 or later.
     """
-    @eval @main function main(args)
+    function main(args)
         run_cli(args)
     end
 else

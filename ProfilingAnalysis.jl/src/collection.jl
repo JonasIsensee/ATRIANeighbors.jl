@@ -124,21 +124,21 @@ function load_profile(filename::String)
 
     entries = [
         ProfileEntry(
-            e[:func],
-            e[:file],
-            e[:line],
-            e[:samples],
-            e[:percentage]
+            e["func"],
+            e["file"],
+            e["line"],
+            e["samples"],
+            e["percentage"]
         )
-        for e in data[:entries]
+        for e in data["entries"]
     ]
 
-    # Convert metadata keys from Symbol to String
-    metadata = Dict{String,Any}(String(k) => v for (k, v) in pairs(data[:metadata]))
+    # Metadata is already a Dict{String,Any} from JSON.parse
+    metadata = get(data, "metadata", Dict{String,Any}())
 
     return ProfileData(
-        DateTime(data[:timestamp]),
-        data[:total_samples],
+        DateTime(data["timestamp"]),
+        data["total_samples"],
         entries,
         metadata
     )

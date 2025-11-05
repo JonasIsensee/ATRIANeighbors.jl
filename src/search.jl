@@ -105,10 +105,14 @@ Search within a terminal cluster node.
             if j < first || j > last
                 # Triangle inequality pruning
                 lower_bound = abs(si.dist - neighbor.distance)
-                if table.high_dist > lower_bound
-                    # Actually compute distance
-                    d = distance(tree.points, j, query_point)
-                    insert!(table, Neighbor(j, d))
+                current_high = table.high_dist
+                if current_high > lower_bound
+                    # Actually compute distance with early termination
+                    # Use current high_dist as threshold for early stopping
+                    d = distance(tree.points, j, query_point, current_high)
+                    if d < current_high
+                        insert!(table, Neighbor(j, d))
+                    end
                 end
             end
         end
