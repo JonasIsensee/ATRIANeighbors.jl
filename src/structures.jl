@@ -123,19 +123,17 @@ Maintains a priority queue of the k nearest neighbors found so far.
 - `k::Int`: Number of neighbors to find
 - `neighbors::Vector{Neighbor}`: Current k-nearest neighbors (max heap)
 - `high_dist::Float64`: Distance to the k-th nearest neighbor (or Inf if < k found)
-- `seen::BitSet`: Track which point indices have been inserted (for duplicate prevention)
 
-NOTE: Unlike C++ ATRIA, we need duplicate checking because centers can be visited
-multiple times through different paths in the tree. The BitSet provides O(1) lookup.
+NOTE: With the corrected tree construction (root center at position 1), duplicate
+checking is no longer needed. Each point is tested at most once, matching C++ behavior.
 """
 mutable struct SortedNeighborTable
     k::Int
     neighbors::Vector{Neighbor}
     high_dist::Float64
-    seen::BitSet
 
     function SortedNeighborTable(k::Int)
-        new(k, Neighbor[], Inf, BitSet())
+        new(k, Neighbor[], Inf)
     end
 end
 
@@ -147,7 +145,6 @@ Initialize or reset the table for a new search with k neighbors.
 function init_search!(table::SortedNeighborTable, k::Int)
     table.k = k
     empty!(table.neighbors)
-    empty!(table.seen)
     table.high_dist = Inf
     return table
 end
@@ -158,19 +155,9 @@ end
 Insert a neighbor into the table, maintaining only the k nearest.
 
 Uses a max heap to efficiently track the k nearest neighbors.
-Prevents duplicate point indices from being inserted using BitSet for O(1) lookup.
+With corrected tree construction, each point is visited at most once (no duplicates).
 """
 @inline function Base.insert!(table::SortedNeighborTable, neighbor::Neighbor)
-    idx = neighbor.index
-
-    # Fast duplicate check with BitSet - O(1) instead of O(k)
-    if idx in table.seen
-        return table  # Already processed this point
-    end
-
-    # Mark as seen
-    push!(table.seen, idx)
-
     if length(table.neighbors) < table.k
         # Still have room, just add it
         push!(table.neighbors, neighbor)
@@ -183,18 +170,9 @@ Prevents duplicate point indices from being inserted using BitSet for O(1) looku
         end
     elseif neighbor.distance < table.high_dist
         # Replace the farthest neighbor (at root of max heap)
-        # Remove old index from seen set
-        old_idx = table.neighbors[1].index
-        delete!(table.seen, old_idx)
-
-        # Insert new neighbor
         table.neighbors[1] = neighbor
         heapify_down!(table.neighbors, 1)
         table.high_dist = table.neighbors[1].distance
-    else
-        # Point is farther than k-th nearest, but we marked it as seen
-        # Remove from seen since we didn't actually add it
-        delete!(table.seen, idx)
     end
     return table
 end

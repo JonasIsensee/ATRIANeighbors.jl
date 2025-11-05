@@ -191,7 +191,8 @@ using Random
         @test tree.total_clusters == 1
         @test tree.terminal_nodes == 1
         @test is_terminal(tree.root)
-        @test tree.root.length == 1
+        # Root center at position 1, section has 0 other points
+        @test tree.root.length == 0
     end
 
     @testset "ATRIA construction - few points" begin
@@ -203,7 +204,8 @@ using Random
 
         @test tree.terminal_nodes == 1
         @test is_terminal(tree.root)
-        @test tree.root.length == 3
+        # Root center at position 1, section has 2 other points
+        @test tree.root.length == 2
     end
 
     @testset "ATRIA construction - validation" begin
