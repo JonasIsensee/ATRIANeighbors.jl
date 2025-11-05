@@ -1,0 +1,50 @@
+================================================================================
+BASELINE Benchmark - BEFORE Optimization
+================================================================================
+
+Testing with N=100 points, D=10 dimensions, k=10 neighbors
+  Tree construction: 0.01 ms
+  Total clusters: 7 (4 terminal)
+  Tree depth: 2
+  Avg terminal size: 23.5
+  Query time: 0.004 ms per query
+  Total for 20 queries: 0.07 ms
+  First query returned 10 neighbors
+    Nearest distance: 0.0373
+    Farthest distance: 3.2292
+
+Testing with N=500 points, D=10 dimensions, k=10 neighbors
+  Tree construction: 0.08 ms
+  Total clusters: 47 (24 terminal)
+  Tree depth: 7
+  Avg terminal size: 18.92
+  Query time: 0.011 ms per query
+  Total for 20 queries: 0.22 ms
+  First query returned 10 neighbors
+    Nearest distance: 0.0339
+    Farthest distance: 2.9737
+
+Testing with N=1000 points, D=10 dimensions, k=10 neighbors
+  Tree construction: 0.2 ms
+  Total clusters: 85 (43 terminal)
+  Tree depth: 7
+  Avg terminal size: 21.3
+  Query time: 0.022 ms per query
+  Total for 20 queries: 0.44 ms
+  First query returned 10 neighbors
+    Nearest distance: 0.0258
+    Farthest distance: 2.4118
+
+================================================================================
+BASELINE Summary
+================================================================================
+N               Build (ms)           Query (ms)
+--------------------------------------------------------------------------------
+100                   0.01                0.004
+500                   0.08                0.011
+1000                  0.20                0.022
+================================================================================
+
+✓ Baseline benchmark completed successfully!
+
+NOTE: This version INCLUDES duplicate checking with BitSet
