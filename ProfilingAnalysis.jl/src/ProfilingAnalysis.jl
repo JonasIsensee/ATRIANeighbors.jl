@@ -78,16 +78,34 @@ include("cli.jl")
 export run_cli
 
 # Entry point for -m flag (Julia 1.11+)
-"""
-    @main(args)
+# Conditionally define if @main is available
+if isdefined(Base, Symbol("@main"))
+    """
+        main(args)
 
-Main entry point for CLI usage.
+    Main entry point for CLI usage.
 
-This function is automatically called when the package is run with:
-    julia -m ProfilingAnalysis [args...]
-"""
-@main function main(args)
-    run_cli(args)
+    This function is automatically called when the package is run with:
+        julia -m ProfilingAnalysis [args...]
+
+    Requires Julia 1.11 or later.
+    """
+    @eval @main function main(args)
+        run_cli(args)
+    end
+else
+    # For Julia < 1.11, define main but it won't be auto-called
+    """
+        main(args)
+
+    Main entry point for CLI usage.
+
+    Note: Automatic execution via -m flag requires Julia 1.11+.
+    For Julia 1.10, call this function manually or use the run_cli function.
+    """
+    function main(args)
+        run_cli(args)
+    end
 end
 
 end # module
