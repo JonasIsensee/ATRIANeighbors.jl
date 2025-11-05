@@ -156,10 +156,6 @@ function range_search(tree::ATRIATree, query_point, radius::Float64; exclude_ran
     first, last = exclude_range
     results = Neighbor[]
 
-    # Use BitVector for fast duplicate detection (O(1) lookup vs O(log n) for Set)
-    N, D = size(tree.points)
-    seen_indices = falses(N)
-
     # Use stack for depth-first search
     stack = SearchItem[]
 
@@ -175,15 +171,12 @@ function range_search(tree::ATRIATree, query_point, radius::Float64; exclude_ran
         if radius >= si.d_min
             # Test cluster center if within radius and not excluded
             if (c.center < first || c.center > last) && si.dist <= radius
-                if !seen_indices[c.center]
-                    push!(results, Neighbor(c.center, si.dist))
-                    seen_indices[c.center] = true
-                end
+                push!(results, Neighbor(c.center, si.dist))
             end
 
             if is_terminal(c)
                 # Terminal node: test points
-                _range_search_terminal_node!(tree, c, si, query_point, radius, first, last, results, seen_indices)
+                _range_search_terminal_node!(tree, c, si, query_point, radius, first, last, results)
             else
                 # Internal node: push children onto stack
                 _push_child_clusters_stack!(tree, c, si, query_point, stack)
@@ -195,11 +188,11 @@ function range_search(tree::ATRIATree, query_point, radius::Float64; exclude_ran
 end
 
 """
-    _range_search_terminal_node!(tree, cluster, si, query_point, radius, first, last, results, seen_indices)
+    _range_search_terminal_node!(tree, cluster, si, query_point, radius, first, last, results)
 
 Range search within a terminal cluster node.
 """
-@inline function _range_search_terminal_node!(tree::ATRIATree, c::Cluster, si::SearchItem, query_point, radius::Float64, first::Int, last::Int, results::Vector{Neighbor}, seen_indices::BitVector)
+@inline function _range_search_terminal_node!(tree::ATRIATree, c::Cluster, si::SearchItem, query_point, radius::Float64, first::Int, last::Int, results::Vector{Neighbor})
     section_start = c.start
     section_end = c.start + c.length - 1
 
@@ -213,10 +206,7 @@ Range search within a terminal cluster node.
             j = neighbor.index
 
             if (j < first || j > last) && si.dist <= radius
-                if !seen_indices[j]
-                    push!(results, Neighbor(j, si.dist))
-                    seen_indices[j] = true
-                end
+                push!(results, Neighbor(j, si.dist))
             end
         end
     else
@@ -226,16 +216,13 @@ Range search within a terminal cluster node.
             j = neighbor.index
 
             if j < first || j > last
-                if !seen_indices[j]
-                    # Triangle inequality pruning
-                    lower_bound = abs(si.dist - neighbor.distance)
-                    if radius >= lower_bound
-                        # Actually compute distance
-                        d = distance(tree.points, j, query_point)
-                        if d <= radius
-                            push!(results, Neighbor(j, d))
-                            seen_indices[j] = true
-                        end
+                # Triangle inequality pruning
+                lower_bound = abs(si.dist - neighbor.distance)
+                if radius >= lower_bound
+                    # Actually compute distance
+                    d = distance(tree.points, j, query_point)
+                    if d <= radius
+                        push!(results, Neighbor(j, d))
                     end
                 end
             end
@@ -280,10 +267,6 @@ function count_range(tree::ATRIATree, query_point, radius::Float64; exclude_rang
     first, last = exclude_range
     count = 0
 
-    # Use BitVector for fast duplicate detection
-    N, D = size(tree.points)
-    seen_indices = falses(N)
-
     # Use stack for depth-first search
     stack = SearchItem[]
 
@@ -299,15 +282,12 @@ function count_range(tree::ATRIATree, query_point, radius::Float64; exclude_rang
         if radius >= si.d_min
             # Test cluster center if within radius and not excluded
             if (c.center < first || c.center > last) && si.dist <= radius
-                if !seen_indices[c.center]
-                    count += 1
-                    seen_indices[c.center] = true
-                end
+                count += 1
             end
 
             if is_terminal(c)
                 # Terminal node: count points
-                count += _count_terminal_node!(tree, c, si, query_point, radius, first, last, seen_indices)
+                count += _count_terminal_node!(tree, c, si, query_point, radius, first, last)
             else
                 # Internal node: push children onto stack
                 _push_child_clusters_stack!(tree, c, si, query_point, stack)
@@ -319,11 +299,11 @@ function count_range(tree::ATRIATree, query_point, radius::Float64; exclude_rang
 end
 
 """
-    _count_terminal_node!(tree, cluster, si, query_point, radius, first, last, seen_indices)
+    _count_terminal_node!(tree, cluster, si, query_point, radius, first, last)
 
 Count points within radius in a terminal cluster node.
 """
-@inline function _count_terminal_node!(tree::ATRIATree, c::Cluster, si::SearchItem, query_point, radius::Float64, first::Int, last::Int, seen_indices::BitVector)
+@inline function _count_terminal_node!(tree::ATRIATree, c::Cluster, si::SearchItem, query_point, radius::Float64, first::Int, last::Int)
     count = 0
     section_start = c.start
     section_end = c.start + c.length - 1
@@ -338,10 +318,7 @@ Count points within radius in a terminal cluster node.
             j = neighbor.index
 
             if (j < first || j > last) && si.dist <= radius
-                if !seen_indices[j]
-                    count += 1
-                    seen_indices[j] = true
-                end
+                count += 1
             end
         end
     else
@@ -351,16 +328,13 @@ Count points within radius in a terminal cluster node.
             j = neighbor.index
 
             if j < first || j > last
-                if !seen_indices[j]
-                    # Triangle inequality pruning
-                    lower_bound = abs(si.dist - neighbor.distance)
-                    if radius >= lower_bound
-                        # Actually compute distance
-                        d = distance(tree.points, j, query_point)
-                        if d <= radius
-                            count += 1
-                            seen_indices[j] = true
-                        end
+                # Triangle inequality pruning
+                lower_bound = abs(si.dist - neighbor.distance)
+                if radius >= lower_bound
+                    # Actually compute distance
+                    d = distance(tree.points, j, query_point)
+                    if d <= radius
+                        count += 1
                     end
                 end
             end

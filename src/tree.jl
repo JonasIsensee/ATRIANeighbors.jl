@@ -50,9 +50,13 @@ Create the initial root cluster and permutation table.
 
 Selects a random center point and computes distances to all other points.
 
+**CRITICAL**: To match C++ ATRIA behavior, the root center is placed at position 1,
+and all other points follow. This ensures the root center is never included in
+child cluster sections, eliminating the need for duplicate checking during search.
+
 Returns:
 - Root cluster with computed Rmax
-- Initial permutation table with all points and their distances to center
+- Initial permutation table with root center at position 1, others at positions 2..N
 """
 function create_root_cluster(points::AbstractPointSet, rng::AbstractRNG=Random.GLOBAL_RNG)
     N, D = size(points)
@@ -68,16 +72,20 @@ function create_root_cluster(points::AbstractPointSet, rng::AbstractRNG=Random.G
     permutation = Vector{Neighbor}(undef, N)
     Rmax = 0.0
 
-    # Compute distances to center
+    # CRITICAL: Place root center at position 1 (matching C++ behavior)
+    # This ensures it's never included in child cluster sections
+    permutation[1] = Neighbor(center_idx, 0.0)
+
+    # Compute distances to center and place other points at positions 2..N
     center_point = getpoint(points, center_idx)
+    write_pos = 2
     for i in 1:N
-        if i == center_idx
-            dist = 0.0
-        else
+        if i != center_idx
             dist = distance(points, i, center_point)
+            permutation[write_pos] = Neighbor(i, dist)
+            Rmax = max(Rmax, dist)
+            write_pos += 1
         end
-        permutation[i] = Neighbor(i, dist)
-        Rmax = max(Rmax, dist)
     end
 
     # Create root cluster (not yet subdivided, so not terminal)
@@ -373,7 +381,9 @@ function build_tree!(
 
     # Stack entries: (cluster, start_idx, length)
     stack = Vector{Tuple{Cluster, Int, Int}}()
-    push!(stack, (root, 1, N))
+    # CRITICAL: Start at position 2, length N-1 (position 1 is root center, excluded from section)
+    # This matches C++ behavior: root.start = 1, root.length = Nused-1 (0-indexed vs 1-indexed)
+    push!(stack, (root, 2, N-1))
 
     total_clusters = 1
     terminal_nodes = 0
@@ -529,6 +539,7 @@ count_nodes(tree::ATRIATree) = tree.total_clusters
     average_terminal_size(tree::ATRIATree) -> Float64
 
 Compute average number of points in terminal nodes.
+Includes both the cluster center and points in its section.
 """
 function average_terminal_size(tree::ATRIATree)
     if tree.terminal_nodes == 0
@@ -541,7 +552,8 @@ end
 
 function sum_terminal_sizes(cluster::Cluster)
     if is_terminal(cluster)
-        return Float64(cluster.length)
+        # Count center (1) plus points in section (cluster.length)
+        return Float64(cluster.length + 1)
     else
         left_sum = cluster.left === nothing ? 0.0 : sum_terminal_sizes(cluster.left)
         right_sum = cluster.right === nothing ? 0.0 : sum_terminal_sizes(cluster.right)
