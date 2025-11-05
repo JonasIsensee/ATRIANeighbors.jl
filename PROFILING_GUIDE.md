@@ -2,6 +2,10 @@
 
 This guide explains how to use the profiling tools to identify and analyze performance bottlenecks in ATRIANeighbors.jl.
 
+## Location
+
+All profiling scripts are located in the `profiling/` directory. This directory has its own environment using Julia 1.12's workspace feature to depend on the local versions of ATRIANeighbors and ProfilingAnalysis.jl.
+
 ## Overview
 
 We provide two profiling tools:
@@ -20,11 +24,22 @@ The advanced profiler solves key usability issues:
 - **Comparison**: Compare two profiles to identify performance regressions
 - **Recommendations**: Auto-generates optimization suggestions based on hotspots
 
+## Setup
+
+First, set up the profiling environment:
+
+```bash
+cd profiling
+export PATH="$HOME/.juliaup/bin:$PATH"
+julia --project=. -e 'using Pkg; Pkg.instantiate()'
+```
+
 ## Quick Start
 
 ### 1. Collect Profile Data
 
 ```bash
+cd profiling
 # Collect profile with default workload
 julia --project=. profile_analyzer.jl collect
 
@@ -255,11 +270,19 @@ When using these tools as an AI assistant:
 ## File Structure
 
 ```
-profile_results/
-├── profile_data.json          # Default structured profile data
-├── profile_flat.txt           # Legacy flat profile (from profile_minimal.jl)
-├── profile_tree.txt           # Legacy tree profile (from profile_minimal.jl)
-└── profile_summary.txt        # Legacy summary (from profile_minimal.jl)
+profiling/
+├── profile_minimal.jl              # Simple profiling tool
+├── profile_intensive.jl            # Intensive profiling workload
+├── profile_analyzer.jl             # Advanced profiling with queries
+├── test_profile_scalability.jl     # Scalability tests
+├── demo_profiling_improvements.jl  # Profiling improvements demo
+├── Project.toml                    # Workspace-based environment
+├── README.md                       # Setup and usage instructions
+└── profile_results/
+    ├── profile_data.json          # Structured profile data
+    ├── profile_flat.txt           # Flat profile
+    ├── profile_tree.txt           # Tree profile
+    └── profile_summary.txt        # Summary
 ```
 
 ## Common Workflows

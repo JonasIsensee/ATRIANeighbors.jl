@@ -21,10 +21,13 @@ The benchmark suite evaluates ATRIA performance on datasets it's designed to exc
 
 ### Installation
 
+This directory uses Julia 1.12's **workspace feature** to depend on the local version of `ATRIANeighbors` from the parent directory. Changes to ATRIANeighbors are immediately reflected when running benchmarks without needing to reinstall or develop the package.
+
 First, instantiate the benchmark environment:
 
 ```bash
 cd benchmark
+export PATH="$HOME/.juliaup/bin:$PATH"
 julia --project=. -e 'using Pkg; Pkg.instantiate()'
 ```
 
