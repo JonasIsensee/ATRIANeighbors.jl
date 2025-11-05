@@ -140,18 +140,43 @@ function find_child_cluster_centers!(
         return left_center_idx, right_center_idx, 0.0
     end
 
+    # Move right center to last position (matching C++ behavior)
+    # swap(Section, index, length-1) in C++
+    right_pos_new = start_idx + length - 1
+    if right_center_pos != right_pos_new
+        permutation[right_center_pos], permutation[right_pos_new] =
+            permutation[right_pos_new], permutation[right_center_pos]
+    end
+
     # Find left center: farthest from right center
+    # **CRITICAL**: Update permutation table with distances to right center as we go
+    # This is the key optimization that allows assign_points_to_centers! to reuse these distances
     right_center_point = getpoint(points, right_center_idx)
     max_dist = -1.0
     left_center_idx = -1
+    left_center_pos = -1
 
-    for i in start_idx:(start_idx + length - 1)
+    # Note: loop to length-2 because length-1 is the right center
+    for i in start_idx:(start_idx + length - 2)
         point_idx = permutation[i].index
         dist = distance(points, point_idx, right_center_point)
+
+        # ⭐ CRITICAL OPTIMIZATION: Store distance to right center in permutation table
+        # This allows the partition algorithm to reuse these distances instead of recalculating
+        permutation[i] = Neighbor(point_idx, dist)
+
         if dist > max_dist
             max_dist = dist
             left_center_idx = point_idx
+            left_center_pos = i
         end
+    end
+
+    # Move left center to first position (matching C++ behavior)
+    # swap(Section, index, 0) in C++
+    if left_center_pos != start_idx
+        permutation[left_center_pos], permutation[start_idx] =
+            permutation[start_idx], permutation[left_center_pos]
     end
 
     # Calculate distance between centers
@@ -171,18 +196,25 @@ end
         right_center_idx::Int
     ) -> (Int, Float64, Float64, Float64)
 
-Partition points between left and right clusters.
+Partition points between left and right clusters using C++ ATRIA's optimized algorithm.
 
-Uses a quicksort-like partitioning: assigns each point to the nearest center
-and rearranges the permutation table so left cluster points come first.
+**CRITICAL OPTIMIZATION**: This function reuses precomputed distances to the right center
+that were stored in the permutation table by find_child_cluster_centers!. Only distances
+to the left center need to be computed, cutting distance calculations by ~2.5x.
+
+Algorithm (matching C++ implementation):
+1. Dual-pointer quicksort-like partition
+2. Walk from left: reuse permutation[i].distance (dist to right center), compute dist to left
+3. Walk from right: reuse permutation[j].distance (dist to right center), compute dist to left
+4. Swap points that belong on opposite sides
+5. Update permutation table with correct distance as we go (no recalculation pass needed)
+6. Compute g_min during partition (no separate pass needed)
 
 Returns:
 - `split_pos`: Position where partition splits (left: [start, split), right: [split, end])
 - `left_Rmax`: Maximum radius of left cluster
 - `right_Rmax`: Maximum radius of right cluster
 - `g_min`: Minimum gap between clusters (for pruning)
-
-The g_min is computed as: min over all points of |dist_to_left - dist_to_right|
 """
 function assign_points_to_centers!(
     points::AbstractPointSet,
@@ -193,68 +225,112 @@ function assign_points_to_centers!(
     right_center_idx::Int
 )
     left_center = getpoint(points, left_center_idx)
-    right_center = getpoint(points, right_center_idx)
 
-    # Partition points
-    left_ptr = start_idx
-    right_ptr = start_idx + length - 1
+    # Dual-pointer partition (matching C++ algorithm)
+    # IMPORTANT: Centers are at positions start_idx (left) and start_idx+length-1 (right)
+    # So we partition indices start_idx+1 to start_idx+length-2
+    i = start_idx
+    j = start_idx + length - 1
 
     left_Rmax = 0.0
     right_Rmax = 0.0
-    g_min = Inf
+    g_min_left = Inf
+    g_min_right = Inf
 
-    while left_ptr <= right_ptr
-        point_idx = permutation[left_ptr].index
+    while true
+        i_belongs_to_left = true
+        j_belongs_to_right = true
 
-        # Calculate distances to both centers
-        dist_left = distance(points, point_idx, left_center)
-        dist_right = distance(points, point_idx, right_center)
+        # Walk from left: find point belonging to right cluster
+        while i + 1 < j
+            i += 1
+            point_idx = permutation[i].index
 
-        # Update g_min
-        gap = abs(dist_left - dist_right)
-        g_min = min(g_min, gap)
+            # ⭐ KEY OPTIMIZATION: Reuse precomputed distance to right center
+            dist_right = permutation[i].distance
+            # Only need to compute distance to left center
+            dist_left = distance(points, point_idx, left_center)
 
-        # Assign to nearest center
-        if dist_left <= dist_right
-            # Belongs to left cluster
-            permutation[left_ptr] = Neighbor(point_idx, dist_left)
-            left_Rmax = max(left_Rmax, dist_left)
-            left_ptr += 1
+            if dist_left > dist_right
+                # Point belongs to right cluster
+                diff = dist_left - dist_right
+                # Store distance to right center (already have it, but for clarity)
+                permutation[i] = Neighbor(point_idx, dist_right)
+                i_belongs_to_left = false
+
+                g_min_right = min(g_min_right, diff)
+                right_Rmax = max(right_Rmax, dist_right)
+                break
+            else
+                # Point belongs to left cluster
+                diff = dist_right - dist_left
+                # Store distance to left center
+                permutation[i] = Neighbor(point_idx, dist_left)
+
+                g_min_left = min(g_min_left, diff)
+                left_Rmax = max(left_Rmax, dist_left)
+            end
+        end
+
+        # Walk from right: find point belonging to left cluster
+        while j - 1 > i
+            j -= 1
+            point_idx = permutation[j].index
+
+            # ⭐ KEY OPTIMIZATION: Reuse precomputed distance to right center
+            dist_right = permutation[j].distance
+            # Only need to compute distance to left center
+            dist_left = distance(points, point_idx, left_center)
+
+            if dist_right >= dist_left
+                # Point belongs to left cluster
+                diff = dist_right - dist_left
+                # Store distance to left center
+                permutation[j] = Neighbor(point_idx, dist_left)
+                j_belongs_to_right = false
+
+                g_min_left = min(g_min_left, diff)
+                left_Rmax = max(left_Rmax, dist_left)
+                break
+            else
+                # Point belongs to right cluster
+                diff = dist_left - dist_right
+                # Store distance to right center
+                permutation[j] = Neighbor(point_idx, dist_right)
+
+                g_min_right = min(g_min_right, diff)
+                right_Rmax = max(right_Rmax, dist_right)
+            end
+        end
+
+        # Check if we're done
+        if i == j - 1
+            # Final adjustment based on what the last two pointers found
+            if !i_belongs_to_left && !j_belongs_to_right
+                # Both belong on opposite sides, swap them
+                permutation[i], permutation[j] = permutation[j], permutation[i]
+            elseif !i_belongs_to_left
+                # i belongs right, j belongs right -> move both back
+                i -= 1
+                j -= 1
+            elseif !j_belongs_to_right
+                # i belongs left, j belongs left -> move both forward
+                i += 1
+                j += 1
+            end
+            # else: i belongs left, j belongs right -> they're in correct positions
+            break
         else
-            # Belongs to right cluster - swap with right_ptr
-            permutation[left_ptr] = Neighbor(permutation[right_ptr].index,
-                                            permutation[right_ptr].distance)
-
-            # Update the swapped position with right cluster info
-            permutation[right_ptr] = Neighbor(point_idx, dist_right)
-            right_Rmax = max(right_Rmax, dist_right)
-            right_ptr -= 1
-
-            # Don't increment left_ptr, we need to process the swapped element
+            # Swap elements at i and j
+            permutation[i], permutation[j] = permutation[j], permutation[i]
         end
     end
 
-    split_pos = left_ptr
-    left_length = split_pos - start_idx
-    right_length = length - left_length
+    # Split position is j (all elements before j belong to left, j and after belong to right)
+    split_pos = j
 
-    # Recalculate distances and Rmax for both clusters after partitioning
-    # (the swap operation may have messed up some distances)
-    left_Rmax = 0.0
-    for i in start_idx:(split_pos - 1)
-        point_idx = permutation[i].index
-        dist = distance(points, point_idx, left_center)
-        permutation[i] = Neighbor(point_idx, dist)
-        left_Rmax = max(left_Rmax, dist)
-    end
-
-    right_Rmax = 0.0
-    for i in split_pos:(start_idx + length - 1)
-        point_idx = permutation[i].index
-        dist = distance(points, point_idx, right_center)
-        permutation[i] = Neighbor(point_idx, dist)
-        right_Rmax = max(right_Rmax, dist)
-    end
+    # g_min is the minimum of the two g_mins computed
+    g_min = min(g_min_left, g_min_right)
 
     return split_pos, left_Rmax, right_Rmax, g_min
 end
@@ -327,11 +403,17 @@ function build_tree!(
                 left_center, right_center
             )
 
-            left_length = split_pos - start_idx
-            right_length = length - left_length
+            # Calculate child cluster ranges, EXCLUDING centers (matching C++ implementation)
+            # Left center is at position start_idx, right center is at start_idx+length-1
+            # C++: left->start = c_start+1, left->length = j-1
+            #      right->start = c_start+j, right->length = c_length-j-1
+            left_start = start_idx + 1  # Skip left center at start_idx
+            left_length = split_pos - start_idx - 1
+            right_start = split_pos
+            right_length = start_idx + length - split_pos - 1  # Up to but not including right center
 
             # Handle edge case: partition failed (all points went to one side)
-            if left_length == 0 || right_length == 0
+            if left_length <= 0 || right_length <= 0
                 # Make this a terminal node
                 cluster.Rmax = -abs(cluster.Rmax)
                 cluster.start = start_idx
@@ -353,8 +435,8 @@ function build_tree!(
             cluster.right = right_child
 
             # Push children onto stack for processing
-            push!(stack, (right_child, split_pos, right_length))
-            push!(stack, (left_child, start_idx, left_length))
+            push!(stack, (right_child, right_start, right_length))
+            push!(stack, (left_child, left_start, left_length))
 
             total_clusters += 2
 

@@ -6,7 +6,7 @@ if [ "$CLAUDE_CODE_REMOTE" != "true" ]; then
 fi
 
 curl -fsSL https://install.julialang.org > juliaup.sh
-sh juliaup.sh -y --default-channel lts
+sh juliaup.sh -y --default-channel release
 
 $HOME/.juliaup/bin/juliaup config channelsymlinks true
 
