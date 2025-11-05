@@ -93,15 +93,22 @@ end
     end
 
     @testset "Child SearchItem construction" begin
+        # Create parent SearchItem first
+        parent_cluster = Cluster(10, 20.0)
+        parent = SearchItem(parent_cluster, 15.0)  # d_min=0, d_max=35
+
+        # Create child SearchItem
         cluster = Cluster(1, 5.0, 2.0, 0, 50)
-        item = SearchItem(cluster, 8.0, 12.0)
+        item = SearchItem(cluster, 8.0, 12.0, parent)
 
         @test item.cluster === cluster
         @test item.dist == 8.0
         @test item.dist_brother == 12.0
-        # d_min = max(0, 8-5, (12-5)/2, 12-2-5) = max(0, 3, 3.5, 5) = 5
-        @test item.d_min == 5.0
-        @test item.d_max == 13.0  # 8 + 5
+        # d_min_local = max(0, 0.5*(8-12+2)) = max(0, -1) = 0
+        # d_min = max(0, max(8-5, parent.d_min)) = max(0, max(3, 0)) = 3
+        @test item.d_min == 3.0
+        # d_max = min(parent.d_max, 8+5) = min(35, 13) = 13
+        @test item.d_max == 13.0
     end
 
     @testset "SearchItem comparison" begin

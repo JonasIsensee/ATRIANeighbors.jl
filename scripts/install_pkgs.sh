@@ -8,6 +8,8 @@ fi
 curl -fsSL https://install.julialang.org > juliaup.sh
 sh juliaup.sh -y --default-channel lts
 
+$HOME/.juliaup/bin/juliaup config channelsymlinks true
+
 if [ -n "$CLAUDE_ENV_FILE" ]; then
   echo 'export PATH="$PATH:$HOME/.juliaup/bin"' >> "$CLAUDE_ENV_FILE"
 # Workaround: juliaup sometimes fails to create the julia symlink

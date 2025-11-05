@@ -307,9 +307,7 @@ using Random
 
         # Should not error
         io = IOBuffer()
-        redirect_stdout(io) do
-            print_tree_stats(tree)
-        end
+        print_tree_stats(io, tree)
         output = String(take!(io))
 
         @test occursin("ATRIA Tree Statistics", output)

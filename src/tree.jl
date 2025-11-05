@@ -472,14 +472,17 @@ end
 
 Print statistics about the tree structure.
 """
-function print_tree_stats(tree::ATRIATree)
+function print_tree_stats(io::IO, tree::ATRIATree)
     N, D = size(tree.points)
-    println("ATRIA Tree Statistics:")
-    println("  Points: $N")
-    println("  Dimensions: $D")
-    println("  Min points per cluster: $(tree.min_points)")
-    println("  Total clusters: $(tree.total_clusters)")
-    println("  Terminal nodes: $(tree.terminal_nodes)")
-    println("  Tree depth: $(tree_depth(tree))")
-    println("  Average terminal size: $(round(average_terminal_size(tree), digits=2))")
+    println(io, "ATRIA Tree Statistics:")
+    println(io, "  Points: $N")
+    println(io, "  Dimensions: $D")
+    println(io, "  Min points per cluster: $(tree.min_points)")
+    println(io, "  Total clusters: $(tree.total_clusters)")
+    println(io, "  Terminal nodes: $(tree.terminal_nodes)")
+    println(io, "  Tree depth: $(tree_depth(tree))")
+    println(io, "  Average terminal size: $(round(average_terminal_size(tree), digits=2))")
 end
+
+# Convenience method that prints to stdout
+print_tree_stats(tree::ATRIATree) = print_tree_stats(stdout, tree)

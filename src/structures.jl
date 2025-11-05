@@ -64,8 +64,9 @@ end
 Check if a cluster is a terminal (leaf) node.
 
 Terminal nodes have negative Rmax values as a marker.
+Handles the special case of -0.0 using signbit.
 """
-is_terminal(cluster::Cluster) = cluster.Rmax < 0
+is_terminal(cluster::Cluster) = cluster.Rmax < 0 || (cluster.Rmax == 0 && signbit(cluster.Rmax))
 
 """
     SearchItem
@@ -94,15 +95,17 @@ struct SearchItem
         new(cluster, dist, 0.0, d_min, d_max)
     end
 
-    # Constructor for child SearchItem
-    function SearchItem(cluster::Cluster, dist::Float64, dist_brother::Float64)
+    # Constructor for child SearchItem (with parent bounds accumulation)
+    function SearchItem(cluster::Cluster, dist::Float64, dist_brother::Float64, parent::SearchItem)
         Rmax = abs(cluster.Rmax)
         g_min = cluster.g_min
 
-        # Calculate bounds using triangle inequality
-        d_min = max(0.0, dist - Rmax, (dist_brother - Rmax) / 2)
-        d_min = max(d_min, dist_brother - g_min - Rmax)
-        d_max = dist + Rmax
+        # Calculate bounds using triangle inequality, matching C++ implementation:
+        # dmin(max(max(0.0, 0.5*(D-Dbrother+c->g_min)), max(D - C->R_max(), parent.dmin)))
+        # dmax(min(parent.dmax, D + C->R_max()))
+        d_min_local = max(0.0, 0.5 * (dist - dist_brother + g_min))
+        d_min = max(d_min_local, max(dist - Rmax, parent.d_min))
+        d_max = min(parent.d_max, dist + Rmax)
 
         new(cluster, dist, dist_brother, d_min, d_max)
     end
@@ -149,8 +152,30 @@ end
 Insert a neighbor into the table, maintaining only the k nearest.
 
 Uses a max heap to efficiently track the k nearest neighbors.
+Prevents duplicate point indices from being inserted.
 """
 function Base.insert!(table::SortedNeighborTable, neighbor::Neighbor)
+    # Check if this point index is already in the table
+    for existing in table.neighbors
+        if existing.index == neighbor.index
+            # Point already exists - update distance if new one is better
+            if neighbor.distance < existing.distance
+                # Find and update the existing neighbor
+                for i in 1:length(table.neighbors)
+                    if table.neighbors[i].index == neighbor.index
+                        table.neighbors[i] = neighbor
+                        # Re-heapify since we changed a value
+                        heapify_down!(table.neighbors, i)
+                        heapify_up!(table.neighbors, i)
+                        table.high_dist = table.neighbors[1].distance
+                        break
+                    end
+                end
+            end
+            return table
+        end
+    end
+
     if length(table.neighbors) < table.k
         # Still have room, just add it
         push!(table.neighbors, neighbor)

@@ -23,4 +23,12 @@ include("tree.jl")
 export ATRIATree, ATRIA
 export tree_depth, count_nodes, average_terminal_size, print_tree_stats
 
+# Search algorithms
+include("search.jl")
+export knn, range_search, count_range
+
+# Brute force reference implementation
+include("brute.jl")
+export brute_knn, brute_knn_batch, brute_range_search, brute_count_range
+
 end # module ATRIANeighbors
