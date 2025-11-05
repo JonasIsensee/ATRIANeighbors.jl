@@ -54,7 +54,7 @@ Build an ATRIA tree from data matrix.
 """
 function build_atria_tree(data::Matrix{Float64}, min_points::Int)
     ps = PointSet(data, EuclideanMetric())
-    return ATRIA(ps, min_points)
+    return ATRIA(ps, min_points=min_points)
 end
 
 """
@@ -109,7 +109,7 @@ function benchmark_query_time(config::BenchmarkConfig, tree, queries::Matrix{Flo
         function run_atria_query()
             for i in 1:n_queries
                 query = queries[i, :]
-                knn(tree, query, k=k)
+                ATRIANeighbors.knn(tree, query, k=k)
             end
         end
 
@@ -120,11 +120,11 @@ function benchmark_query_time(config::BenchmarkConfig, tree, queries::Matrix{Flo
         avg_dist_calcs = config.N  # Placeholder - would need actual counting
 
     else
-        # Benchmark reference queries
+        # Benchmark reference queries (NearestNeighbors.jl)
         function run_reference_query()
             for i in 1:n_queries
                 query = queries[i, :]
-                knn(tree, query, k)
+                NearestNeighbors.knn(tree, query, k)
             end
         end
 
