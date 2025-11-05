@@ -18,4 +18,9 @@ include("pointsets.jl")
 export AbstractPointSet, PointSet, EmbeddedTimeSeries
 export getpoint
 
+# ATRIA tree construction
+include("tree.jl")
+export ATRIATree, ATRIA
+export tree_depth, count_nodes, average_terminal_size, print_tree_stats
+
 end # module ATRIANeighbors
