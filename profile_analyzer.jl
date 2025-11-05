@@ -1,8 +1,7 @@
 """
 profile_analyzer.jl
 
-Advanced profiling tool with structured data storage and programmatic querying.
-Designed to handle large profile datasets without clogging context.
+ATRIANeighbors-specific profiling script using ProfilingAnalysis.jl.
 
 Usage:
     # Collect profile data
@@ -10,9 +9,7 @@ Usage:
 
     # Query profile data
     julia --project=. profile_analyzer.jl query --top 10
-    julia --project=. profile_analyzer.jl query --file src/search.jl
-    julia --project=. profile_analyzer.jl query --pattern "distance"
-    julia --project=. profile_analyzer.jl query --function "_search_knn!"
+    julia --project=. profile_analyzer.jl query --atria
 
     # Get summary
     julia --project=. profile_analyzer.jl summary
@@ -22,46 +19,18 @@ Usage:
     julia --project=. profile_analyzer.jl compare profile1.json profile2.json
 """
 
-using Profile
-using Random
-using Printf
-using Statistics
-using Dates
-using JSON3
+# Add ProfilingAnalysis package to load path
+push!(LOAD_PATH, joinpath(@__DIR__, "ProfilingAnalysis.jl", "src"))
 
-# Load the package
+using ProfilingAnalysis
+using Random
 using ATRIANeighbors
 
 const PROFILE_DIR = "profile_results"
 const DEFAULT_PROFILE_FILE = joinpath(PROFILE_DIR, "profile_data.json")
 
 # ============================================================================
-# Data Structures
-# ============================================================================
-
-"""
-Profile entry representing a single function/location in the profile.
-"""
-struct ProfileEntry
-    func::String
-    file::String
-    line::Int
-    samples::Int
-    percentage::Float64
-end
-
-"""
-Complete profile dataset with metadata.
-"""
-struct ProfileData
-    timestamp::DateTime
-    total_samples::Int
-    entries::Vector{ProfileEntry}
-    metadata::Dict{String, Any}
-end
-
-# ============================================================================
-# Workload Generation
+# ATRIA-Specific Workload
 # ============================================================================
 
 """
@@ -74,11 +43,11 @@ function simple_dataset(N::Int, D::Int; rng=Random.GLOBAL_RNG)
 end
 
 """
-    run_profiled_workload(; scenarios=nothing)
+    run_atria_workload(; scenarios=nothing)
 
-Run a representative workload for profiling.
+Run a representative ATRIA workload for profiling.
 """
-function run_profiled_workload(; scenarios=nothing)
+function run_atria_workload(; scenarios=nothing)
     rng = MersenneTwister(42)
 
     # Default scenarios
@@ -112,183 +81,8 @@ function run_profiled_workload(; scenarios=nothing)
 end
 
 # ============================================================================
-# Profile Collection
+# ATRIA-Specific Query Functions
 # ============================================================================
-
-"""
-    collect_profile_data(; workload_fn=run_profiled_workload, metadata=Dict{String,Any}())
-
-Collect profile data and return as structured ProfileData.
-"""
-function collect_profile_data(; workload_fn=run_profiled_workload, metadata=Dict{String,Any}())
-    # Clear previous profile data
-    Profile.clear()
-
-    # Warm up (compilation)
-    println("Warming up (compilation)...")
-    workload_fn()
-
-    # Profile
-    println("Profiling with sampling enabled...")
-    Profile.clear()
-    @profile workload_fn()
-
-    # Extract data
-    data = Profile.fetch()
-
-    if isempty(data)
-        @warn "No profile data collected. The workload may be too fast."
-        return ProfileData(now(), 0, ProfileEntry[], metadata)
-    end
-
-    # Count samples per function
-    function_counts = Dict{Tuple{String,String,Int}, Int}()
-
-    for frame_idx in data
-        if frame_idx > 0  # Valid frame
-            try
-                frames = Profile.lookup(frame_idx)
-                if !isempty(frames)
-                    func_info = frames[1]
-                    func_name = String(func_info.func)
-                    file = String(func_info.file)
-                    line = func_info.line
-
-                    # Skip invalid entries but keep all valid ones
-                    if func_name != "unknown function"
-                        key = (func_name, file, line)
-                        function_counts[key] = get(function_counts, key, 0) + 1
-                    end
-                end
-            catch
-                # Skip invalid frames
-                continue
-            end
-        end
-    end
-
-    # Convert to ProfileEntry array
-    total_samples = length(data)
-    entries = [
-        ProfileEntry(func, file, line, count, 100.0 * count / total_samples)
-        for ((func, file, line), count) in function_counts
-    ]
-
-    # Sort by sample count (descending)
-    sort!(entries, by=e -> e.samples, rev=true)
-
-    return ProfileData(now(), total_samples, entries, metadata)
-end
-
-"""
-    save_profile(profile::ProfileData, filename::String)
-
-Save profile data to JSON file.
-"""
-function save_profile(profile::ProfileData, filename::String)
-    mkpath(dirname(filename))
-
-    # Convert to JSON-friendly format
-    data = Dict(
-        "timestamp" => string(profile.timestamp),
-        "total_samples" => profile.total_samples,
-        "entries" => [
-            Dict(
-                "func" => e.func,
-                "file" => e.file,
-                "line" => e.line,
-                "samples" => e.samples,
-                "percentage" => e.percentage
-            )
-            for e in profile.entries
-        ],
-        "metadata" => profile.metadata
-    )
-
-    open(filename, "w") do io
-        JSON3.pretty(io, data)
-    end
-
-    println("Profile data saved to: $filename")
-    println("  Total samples: $(profile.total_samples)")
-    println("  Unique locations: $(length(profile.entries))")
-end
-
-"""
-    load_profile(filename::String) -> ProfileData
-
-Load profile data from JSON file.
-"""
-function load_profile(filename::String)
-    data = JSON3.read(read(filename, String))
-
-    entries = [
-        ProfileEntry(
-            e[:func],
-            e[:file],
-            e[:line],
-            e[:samples],
-            e[:percentage]
-        )
-        for e in data[:entries]
-    ]
-
-    # Convert metadata keys from Symbol to String
-    metadata = Dict{String,Any}(String(k) => v for (k, v) in pairs(data[:metadata]))
-
-    return ProfileData(
-        DateTime(data[:timestamp]),
-        data[:total_samples],
-        entries,
-        metadata
-    )
-end
-
-# ============================================================================
-# Query Functions
-# ============================================================================
-
-"""
-    query_top_n(profile::ProfileData, n::Int; filter_system=true) -> Vector{ProfileEntry}
-
-Get top N hotspots.
-"""
-function query_top_n(profile::ProfileData, n::Int; filter_system=true)
-    entries = profile.entries
-
-    if filter_system
-        entries = filter(e -> !is_system_code(e), entries)
-    end
-
-    return entries[1:min(n, length(entries))]
-end
-
-"""
-    query_by_file(profile::ProfileData, file_pattern::String) -> Vector{ProfileEntry}
-
-Get all entries matching a file pattern.
-"""
-function query_by_file(profile::ProfileData, file_pattern::String)
-    return filter(e -> contains(e.file, file_pattern), profile.entries)
-end
-
-"""
-    query_by_function(profile::ProfileData, func_pattern::String) -> Vector{ProfileEntry}
-
-Get all entries matching a function name pattern.
-"""
-function query_by_function(profile::ProfileData, func_pattern::String)
-    return filter(e -> contains(e.func, func_pattern), profile.entries)
-end
-
-"""
-    query_by_pattern(profile::ProfileData, pattern::String) -> Vector{ProfileEntry}
-
-Get all entries where function OR file matches pattern.
-"""
-function query_by_pattern(profile::ProfileData, pattern::String)
-    return filter(e -> contains(e.func, pattern) || contains(e.file, pattern), profile.entries)
-end
 
 """
     query_atria_code(profile::ProfileData) -> Vector{ProfileEntry}
@@ -297,241 +91,60 @@ Get all entries from ATRIANeighbors package code.
 """
 function query_atria_code(profile::ProfileData)
     atria_files = ["tree.jl", "search.jl", "structures.jl", "metrics.jl", "pointsets.jl"]
-    return filter(e ->
+    return query_by_filter(profile, e ->
         contains(e.file, "ATRIANeighbors") ||
-        any(contains(e.file, f) for f in atria_files),
-        profile.entries
+        any(contains(e.file, f) for f in atria_files)
     )
 end
 
-"""
-    is_system_code(entry::ProfileEntry) -> Bool
-
-Check if entry is from system/base Julia code.
-"""
-function is_system_code(entry::ProfileEntry)
-    system_patterns = [
-        "libc", "libopenlibm", "jl_", "julia-release",
-        "/Base.jl", "/client.jl", "/loading.jl", "/boot.jl",
-        "/cache/build/", "/workspace/srcdir/", "glibc"
-    ]
-
-    return any(contains(entry.file, p) || contains(entry.func, p) for p in system_patterns)
-end
-
 # ============================================================================
-# Summary Functions
+# ATRIA-Specific Recommendations
 # ============================================================================
 
-"""
-    print_entry_table(entries::Vector{ProfileEntry}; max_width=120)
-
-Print entries in a formatted table.
-"""
-function print_entry_table(entries::Vector{ProfileEntry}; max_width=120)
-    if isempty(entries)
-        println("No entries found.")
-        return
-    end
-
-    println(@sprintf("%-5s %-10s %-8s %-s", "Rank", "Samples", "% Total", "Function @ File:Line"))
-    println("-" ^ max_width)
-
-    for (idx, entry) in enumerate(entries)
-        # Format location
-        location = "$(entry.func) @ $(entry.file):$(entry.line)"
-        if length(location) > max_width - 30
-            location = location[1:max_width-33] * "..."
-        end
-
-        println(@sprintf("%-5d %-10d %-8.2f %s",
-            idx, entry.samples, entry.percentage, location))
-    end
-end
-
-"""
-    summarize_profile(profile::ProfileData; atria_only=false, top_n=20, show_recommendations=true)
-
-Generate a comprehensive summary of profile data.
-"""
-function summarize_profile(profile::ProfileData; atria_only=false, top_n=20, show_recommendations=true)
-    println("=" ^ 80)
-    println("Profile Summary")
-    println("=" ^ 80)
-    println("Timestamp: ", profile.timestamp)
-    println("Total samples: ", profile.total_samples)
-    println("Unique locations: ", length(profile.entries))
-    println()
-
-    # Overall top hotspots
-    if !atria_only
-        println("=" ^ 80)
-        println("Top $top_n Hotspots (All Code)")
-        println("=" ^ 80)
-        println()
-        top_entries = query_top_n(profile, top_n, filter_system=true)
-        print_entry_table(top_entries)
-        println()
-    end
-
-    # ATRIA-specific hotspots
-    println("=" ^ 80)
-    println("ATRIA Package Hotspots")
-    println("=" ^ 80)
-    println()
-    atria_entries = query_atria_code(profile)
-
-    if !isempty(atria_entries)
-        atria_samples = sum(e.samples for e in atria_entries)
-        atria_pct = 100.0 * atria_samples / profile.total_samples
-        println("Total ATRIA samples: $atria_samples / $(profile.total_samples) ($(round(atria_pct, digits=2))%)")
-        println()
-
-        display_count = atria_only ? length(atria_entries) : min(top_n, length(atria_entries))
-        print_entry_table(atria_entries[1:display_count])
-    else
-        println("No ATRIA package code found in profile.")
-    end
-    println()
-
-    # Recommendations
-    if show_recommendations && !isempty(atria_entries)
-        println("=" ^ 80)
-        println("Performance Recommendations")
-        println("=" ^ 80)
-        println()
-        generate_recommendations(atria_entries)
-    end
-end
-
-"""
-    generate_recommendations(entries::Vector{ProfileEntry})
-
-Generate performance recommendations based on hotspots.
-"""
-function generate_recommendations(entries::Vector{ProfileEntry})
-    # Categorize hotspots
-    has_distance = any(contains(lowercase(e.func), "distance") for e in entries)
-    has_search = any(contains(lowercase(e.func), "search") || contains(lowercase(e.func), "knn") for e in entries)
-    has_heap = any(contains(lowercase(e.func), "heap") || contains(lowercase(e.func), "neighbor") for e in entries)
-    has_tree = any(contains(lowercase(e.func), "tree") || contains(lowercase(e.func), "build") for e in entries)
-    has_partition = any(contains(lowercase(e.func), "partition") || contains(lowercase(e.func), "assign") for e in entries)
-
-    if has_distance
-        println("🔥 DISTANCE CALCULATIONS IN HOT PATH:")
-        println("   • Add @inbounds for array access")
-        println("   • Use @simd for vectorization")
-        println("   • Implement aggressive early termination")
-        println("   • Add @inline annotations")
-        println()
-    end
-
-    if has_search
-        println("🔍 SEARCH OPERATIONS IN HOT PATH:")
-        println("   • Optimize priority queue operations")
-        println("   • Reduce allocations in search loop")
-        println("   • Use @inbounds for permutation table access")
-        println("   • Consider caching frequently accessed data")
-        println()
-    end
-
-    if has_heap
-        println("📊 HEAP OPERATIONS IN HOT PATH:")
-        println("   • Use StaticArrays for small fixed k")
-        println("   • Optimize SortedNeighborTable data structure")
-        println("   • Reduce allocations in insert/remove")
-        println()
-    end
-
-    if has_tree
-        println("🌲 TREE CONSTRUCTION IN HOT PATH:")
-        println("   • Optimize partition algorithm")
-        println("   • Improve cache locality")
-        println("   • Pre-allocate arrays")
-        println()
-    end
-
-    if has_partition
-        println("✂️  PARTITIONING IN HOT PATH:")
-        println("   • Optimize assign_points_to_centers!")
-        println("   • Reduce memory allocations")
-        println("   • Improve memory access patterns")
-        println()
-    end
-end
-
-"""
-    compare_profiles(profile1::ProfileData, profile2::ProfileData; top_n=20)
-
-Compare two profile datasets to identify performance changes.
-"""
-function compare_profiles(profile1::ProfileData, profile2::ProfileData; top_n=20)
-    println("=" ^ 80)
-    println("Profile Comparison")
-    println("=" ^ 80)
-    println()
-    println("Profile 1: $(profile1.timestamp) ($(profile1.total_samples) samples)")
-    println("Profile 2: $(profile2.timestamp) ($(profile2.total_samples) samples)")
-    println()
-
-    # Create lookup maps
-    map1 = Dict((e.func, e.file, e.line) => e for e in profile1.entries)
-    map2 = Dict((e.func, e.file, e.line) => e for e in profile2.entries)
-
-    # Find all unique keys
-    all_keys = union(keys(map1), keys(map2))
-
-    # Calculate differences
-    differences = []
-    for key in all_keys
-        e1 = get(map1, key, nothing)
-        e2 = get(map2, key, nothing)
-
-        samples1 = e1 === nothing ? 0 : e1.samples
-        samples2 = e2 === nothing ? 0 : e2.samples
-
-        pct1 = e1 === nothing ? 0.0 : e1.percentage
-        pct2 = e2 === nothing ? 0.0 : e2.percentage
-
-        diff = samples2 - samples1
-        pct_diff = pct2 - pct1
-
-        if abs(diff) > 0
-            entry = e1 !== nothing ? e1 : e2
-            push!(differences, (entry, diff, pct_diff))
-        end
-    end
-
-    # Sort by absolute difference
-    sort!(differences, by=x -> abs(x[2]), rev=true)
-
-    println("=" ^ 80)
-    println("Top $top_n Changes (by absolute sample difference)")
-    println("=" ^ 80)
-    println()
-    println(@sprintf("%-5s %-10s %-10s %-s", "Rank", "Δ Samples", "Δ %", "Function @ File:Line"))
-    println("-" ^ 80)
-
-    for (idx, (entry, diff, pct_diff)) in enumerate(differences[1:min(top_n, length(differences))])
-        location = "$(entry.func) @ $(entry.file):$(entry.line)"
-        if length(location) > 60
-            location = location[1:57] * "..."
-        end
-
-        sign = diff > 0 ? "+" : ""
-        println(@sprintf("%-5d %s%-9d %s%-9.2f %s",
-            idx, sign, diff, sign, pct_diff, location))
-    end
-    println()
-
-    # Summary statistics
-    total_increase = sum(d[2] for d in differences if d[2] > 0)
-    total_decrease = sum(d[2] for d in differences if d[2] < 0)
-
-    println("Summary:")
-    println("  Total sample changes: $total_increase (increases), $total_decrease (decreases)")
-    println()
-end
+const ATRIA_RECOMMENDATION_PATTERNS = Dict(
+    "Distance Calculations" => (
+        patterns = ["distance", "metric", "norm"],
+        recommendations = [
+            "Add @inbounds for array access",
+            "Use @simd for vectorization",
+            "Implement aggressive early termination",
+            "Add @inline annotations"
+        ]
+    ),
+    "Search Operations" => (
+        patterns = ["search", "knn", "_search"],
+        recommendations = [
+            "Optimize priority queue operations",
+            "Reduce allocations in search loop",
+            "Use @inbounds for permutation table access",
+            "Consider caching frequently accessed data"
+        ]
+    ),
+    "Heap Operations" => (
+        patterns = ["heap", "neighbor", "sorted"],
+        recommendations = [
+            "Use StaticArrays for small fixed k",
+            "Optimize SortedNeighborTable data structure",
+            "Reduce allocations in insert/remove"
+        ]
+    ),
+    "Tree Construction" => (
+        patterns = ["tree", "build", "cluster"],
+        recommendations = [
+            "Optimize partition algorithm",
+            "Improve cache locality",
+            "Pre-allocate arrays"
+        ]
+    ),
+    "Partitioning" => (
+        patterns = ["partition", "assign", "center"],
+        recommendations = [
+            "Optimize assign_points_to_centers!",
+            "Reduce memory allocations",
+            "Improve memory access patterns"
+        ]
+    )
+)
 
 # ============================================================================
 # CLI Interface
@@ -581,7 +194,7 @@ Display help message.
 function show_help()
     println("""
 ATRIANeighbors.jl Profile Analyzer
-==================================
+===================================
 
 COMMANDS:
 
@@ -589,7 +202,6 @@ COMMANDS:
       Collect profile data and save to file
       Options:
         --output FILE    Output file (default: profile_results/profile_data.json)
-        --scenarios N    Use N different test scenarios
 
   query [options]
       Query profile data
@@ -635,6 +247,9 @@ EXAMPLES:
   # Generate summary
   julia --project=. profile_analyzer.jl summary
 
+  # Generate summary with recommendations
+  julia --project=. profile_analyzer.jl summary --atria-only
+
   # Compare two profiles
   julia --project=. profile_analyzer.jl compare old.json new.json
 """)
@@ -657,11 +272,13 @@ function main(args::Vector{String})
     if command == "collect"
         output = get(parsed, "output", DEFAULT_PROFILE_FILE)
         metadata = Dict{String,Any}(
+            "package" => "ATRIANeighbors",
             "command" => "collect",
             "args" => args
         )
 
-        profile = collect_profile_data(metadata=metadata)
+        println("Collecting profile data for ATRIANeighbors...")
+        profile = collect_profile_data(run_atria_workload, metadata=metadata)
         save_profile(profile, output)
 
     elseif command == "query"
@@ -687,7 +304,8 @@ function main(args::Vector{String})
         else
             filter_system = get(parsed, "no-system", "true") == "true"
             top_n = parse(Int, get(parsed, "top", "20"))
-            query_top_n(profile, top_n, filter_system=filter_system)
+            filter_fn = filter_system ? (e -> !is_system_code(e)) : nothing
+            query_top_n(profile, top_n, filter_fn=filter_fn)
         end
 
         if haskey(parsed, "top") && !haskey(parsed, "atria")
@@ -711,7 +329,39 @@ function main(args::Vector{String})
         atria_only = haskey(parsed, "atria-only")
         show_recs = !haskey(parsed, "no-recommendations")
 
-        summarize_profile(profile, atria_only=atria_only, top_n=top_n, show_recommendations=show_recs)
+        # Show overall summary if not atria-only
+        if !atria_only
+            summarize_profile(profile,
+                filter_fn = e -> !is_system_code(e),
+                top_n=top_n,
+                title="Profile Summary (All Code)"
+            )
+        end
+
+        # Show ATRIA-specific summary
+        atria_entries = query_atria_code(profile)
+        if !isempty(atria_entries)
+            atria_samples = sum(e.samples for e in atria_entries)
+            atria_pct = 100.0 * atria_samples / profile.total_samples
+
+            println("=" ^ 80)
+            println("ATRIA Package Hotspots")
+            println("=" ^ 80)
+            println()
+            println("Total ATRIA samples: $atria_samples / $(profile.total_samples) ($(round(atria_pct, digits=2))%)")
+            println()
+
+            display_count = atria_only ? length(atria_entries) : min(top_n, length(atria_entries))
+            print_entry_table(atria_entries[1:display_count])
+            println()
+
+            # Show recommendations
+            if show_recs
+                generate_recommendations(atria_entries, ATRIA_RECOMMENDATION_PATTERNS)
+            end
+        else
+            println("No ATRIA package code found in profile.")
+        end
 
     elseif command == "compare"
         positional = get(parsed, "positional", [])

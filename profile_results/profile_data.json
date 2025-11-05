@@ -2,725 +2,635 @@
     "entries": [
         {
             "line": -1,
-            "percentage": 12.735519888346127,
-            "samples": 365,
+            "percentage": 12.940178192617735,
+            "samples": 305,
             "file": "",
             "func": ""
         },
         {
             "line": 2895,
-            "percentage": 10.188415910676902,
-            "samples": 292,
+            "percentage": 10.352142554094188,
+            "samples": 244,
             "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/gf.c",
             "func": "_jl_invoke"
         },
         {
             "line": 1982,
-            "percentage": 5.094207955338451,
-            "samples": 146,
+            "percentage": 5.176071277047094,
+            "samples": 122,
             "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/julia.h",
             "func": "jl_apply"
         },
         {
             "line": -1,
-            "percentage": 2.6168876482903,
-            "samples": 75,
+            "percentage": 2.927450148493848,
+            "samples": 69,
             "file": "/lib/x86_64-linux-gnu/libc.so.6",
             "func": ""
         },
         {
             "line": 2206,
-            "percentage": 2.5471039776692255,
-            "samples": 73,
+            "percentage": 2.588035638523547,
+            "samples": 61,
             "file": "./loading.jl",
             "func": "_include"
         },
         {
             "line": 123,
-            "percentage": 2.5471039776692255,
-            "samples": 73,
+            "percentage": 2.588035638523547,
+            "samples": 61,
             "file": "/workspace/srcdir/glibc-2.17/csu/../sysdeps/x86_64/start.S",
             "func": ""
         },
         {
             "line": 877,
-            "percentage": 2.5471039776692255,
-            "samples": 73,
+            "percentage": 2.588035638523547,
+            "samples": 61,
             "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/toplevel.c",
             "func": "jl_toplevel_eval_flex"
         },
         {
             "line": 934,
-            "percentage": 2.5471039776692255,
-            "samples": 73,
+            "percentage": 2.588035638523547,
+            "samples": 61,
             "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/toplevel.c",
             "func": "jl_toplevel_eval_flex"
         },
         {
-            "line": 81,
-            "percentage": 2.5471039776692255,
-            "samples": 73,
-            "file": "/home/user/ATRIANeighbors.jl/profile_analyzer.jl",
-            "func": "run_profiled_workload"
-        },
-        {
             "line": -1,
-            "percentage": 2.5471039776692255,
-            "samples": 73,
+            "percentage": 2.588035638523547,
+            "samples": 61,
             "file": "/lib/x86_64-linux-gnu/libc.so.6",
             "func": "__libc_start_main"
         },
         {
             "line": 495,
-            "percentage": 2.5471039776692255,
-            "samples": 73,
+            "percentage": 2.588035638523547,
+            "samples": 61,
             "file": "./Base.jl",
             "func": "include"
         },
         {
             "line": 775,
-            "percentage": 2.5471039776692255,
-            "samples": 73,
+            "percentage": 2.588035638523547,
+            "samples": 61,
             "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/interpreter.c",
             "func": "jl_interpret_toplevel_thunk"
         },
         {
+            "line": 50,
+            "percentage": 2.588035638523547,
+            "samples": 61,
+            "file": "/home/user/ATRIANeighbors.jl/profile_analyzer.jl",
+            "func": "run_atria_workload"
+        },
+        {
             "line": 174,
-            "percentage": 2.5471039776692255,
-            "samples": 73,
+            "percentage": 2.588035638523547,
+            "samples": 61,
             "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/interpreter.c",
             "func": "eval_stmt_value"
         },
         {
             "line": -1,
-            "percentage": 2.5471039776692255,
-            "samples": 73,
+            "percentage": 2.588035638523547,
+            "samples": 61,
             "file": "/root/.julia/juliaup/julia-1.10.10+0.x64.linux.gnu/lib/julia/sys.so",
             "func": "jfptr_include_46653.1"
         },
         {
             "line": 58,
-            "percentage": 2.5471039776692255,
-            "samples": 73,
+            "percentage": 2.588035638523547,
+            "samples": 61,
             "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/cli/loader_exe.c",
             "func": "main"
         },
         {
             "line": 385,
-            "percentage": 2.5471039776692255,
-            "samples": 73,
+            "percentage": 2.588035638523547,
+            "samples": 61,
             "file": "./boot.jl",
             "func": "eval"
         },
         {
+            "line": 23,
+            "percentage": 2.588035638523547,
+            "samples": 61,
+            "file": "/home/user/ATRIANeighbors.jl/ProfilingAnalysis.jl/src/collection.jl",
+            "func": "collect_profile_data"
+        },
+        {
             "line": -1,
-            "percentage": 2.5471039776692255,
-            "samples": 73,
+            "percentage": 2.588035638523547,
+            "samples": 61,
             "file": "/root/.julia/juliaup/julia-1.10.10+0.x64.linux.gnu/lib/julia/sys.so",
             "func": "jfptr__start_83114.1"
         },
         {
             "line": 323,
-            "percentage": 2.5471039776692255,
-            "samples": 73,
+            "percentage": 2.588035638523547,
+            "samples": 61,
             "file": "./client.jl",
             "func": "exec_options"
         },
         {
-            "line": 123,
-            "percentage": 2.5471039776692255,
-            "samples": 73,
-            "file": "/home/user/ATRIANeighbors.jl/profile_analyzer.jl",
-            "func": "collect_profile_data"
-        },
-        {
             "line": 223,
-            "percentage": 2.5471039776692255,
-            "samples": 73,
+            "percentage": 2.588035638523547,
+            "samples": 61,
             "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/interpreter.c",
             "func": "eval_value"
         },
         {
             "line": 985,
-            "percentage": 2.5471039776692255,
-            "samples": 73,
+            "percentage": 2.588035638523547,
+            "samples": 61,
             "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/toplevel.c",
             "func": "ijl_toplevel_eval_in"
         },
         {
             "line": 557,
-            "percentage": 2.5471039776692255,
-            "samples": 73,
+            "percentage": 2.588035638523547,
+            "samples": 61,
             "file": "./client.jl",
             "func": "_start"
         },
         {
             "line": 731,
-            "percentage": 2.5471039776692255,
-            "samples": 73,
+            "percentage": 2.588035638523547,
+            "samples": 61,
             "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/jlapi.c",
             "func": "jl_repl_entrypoint"
         },
         {
             "line": 20,
-            "percentage": 2.2679692951849266,
-            "samples": 65,
+            "percentage": 2.206194314806958,
+            "samples": 52,
             "file": "/home/user/ATRIANeighbors.jl/src/search.jl",
             "func": "knn"
         },
         {
             "line": 26,
-            "percentage": 2.2679692951849266,
-            "samples": 65,
+            "percentage": 2.206194314806958,
+            "samples": 52,
             "file": "/home/user/ATRIANeighbors.jl/src/search.jl",
             "func": "#knn#4"
         },
         {
             "line": 617,
-            "percentage": 0.6629448709002094,
-            "samples": 19,
+            "percentage": 1.0182435299109036,
+            "samples": 24,
             "file": "./reflection.jl",
             "func": "_objectid"
         },
         {
-            "line": 287,
-            "percentage": 0.6629448709002094,
-            "samples": 19,
-            "file": "/root/.julia/packages/DataStructures/qUuAY/src/priorityqueue.jl",
-            "func": "push!"
-        },
-        {
             "line": 377,
-            "percentage": 0.5931612002791347,
-            "samples": 17,
+            "percentage": 0.8061094611794655,
+            "samples": 19,
             "file": "./dict.jl",
             "func": "setindex!"
         },
         {
-            "line": 136,
-            "percentage": 0.5582693649685974,
-            "samples": 16,
-            "file": "/home/user/ATRIANeighbors.jl/src/search.jl",
-            "func": "_push_child_clusters!"
-        },
-        {
             "line": 52,
-            "percentage": 0.5233775296580601,
-            "samples": 15,
+            "percentage": 0.5939753924480271,
+            "samples": 14,
             "file": "/home/user/ATRIANeighbors.jl/src/search.jl",
             "func": "_search_knn!"
         },
         {
-            "line": 358,
-            "percentage": 0.4884856943475227,
-            "samples": 14,
-            "file": "./dict.jl",
-            "func": "_setindex!"
-        },
-        {
-            "line": 477,
-            "percentage": 0.45359385903698535,
-            "samples": 13,
-            "file": "./boot.jl",
-            "func": "Array"
-        },
-        {
-            "line": 134,
-            "percentage": 0.45359385903698535,
-            "samples": 13,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/array.c",
-            "func": "_new_array_"
-        },
-        {
-            "line": 937,
-            "percentage": 0.418702023726448,
-            "samples": 12,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/gc.c",
-            "func": "maybe_collect"
-        },
-        {
-            "line": 3524,
-            "percentage": 0.418702023726448,
-            "samples": 12,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/gc.c",
-            "func": "ijl_gc_collect"
-        },
-        {
-            "line": 31,
-            "percentage": 0.418702023726448,
-            "samples": 12,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/support/hashing.h",
-            "func": "bitmix"
-        },
-        {
-            "line": 1350,
-            "percentage": 0.418702023726448,
-            "samples": 12,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/gc.c",
-            "func": "jl_gc_pool_alloc_noinline"
-        },
-        {
             "line": 137,
-            "percentage": 0.3838101884159107,
+            "percentage": 0.4666949512091642,
             "samples": 11,
             "file": "/home/user/ATRIANeighbors.jl/src/search.jl",
             "func": "_push_child_clusters!"
         },
         {
-            "line": 179,
-            "percentage": 0.2791346824842987,
+            "line": 31,
+            "percentage": 0.42426813746287656,
+            "samples": 10,
+            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/support/hashing.h",
+            "func": "bitmix"
+        },
+        {
+            "line": 393,
+            "percentage": 0.3818413237165889,
+            "samples": 9,
+            "file": "/home/user/ATRIANeighbors.jl/src/tree.jl",
+            "func": "ATRIA"
+        },
+        {
+            "line": 136,
+            "percentage": 0.3394145099703012,
             "samples": 8,
-            "file": "/root/.julia/packages/DataStructures/qUuAY/src/priorityqueue.jl",
-            "func": "percolate_down!"
+            "file": "/home/user/ATRIANeighbors.jl/src/search.jl",
+            "func": "_push_child_clusters!"
         },
         {
             "line": 13,
-            "percentage": 0.24424284717376135,
-            "samples": 7,
+            "percentage": 0.3394145099703012,
+            "samples": 8,
             "file": "./essentials.jl",
             "func": "getindex"
         },
         {
             "line": 411,
-            "percentage": 0.24424284717376135,
-            "samples": 7,
+            "percentage": 0.3394145099703012,
+            "samples": 8,
             "file": "/home/user/ATRIANeighbors.jl/src/tree.jl",
             "func": "#ATRIA#3"
         },
         {
-            "line": 393,
-            "percentage": 0.24424284717376135,
+            "line": 427,
+            "percentage": 0.29698769622401355,
             "samples": 7,
-            "file": "/home/user/ATRIANeighbors.jl/src/tree.jl",
-            "func": "ATRIA"
-        },
-        {
-            "line": 410,
-            "percentage": 0.209351011863224,
-            "samples": 6,
-            "file": "./float.jl",
-            "func": "-"
-        },
-        {
-            "line": 2580,
-            "percentage": 0.17445917655268667,
-            "samples": 5,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/gc.c",
-            "func": "gc_mark_outrefs"
-        },
-        {
-            "line": 206,
-            "percentage": 0.13956734124214934,
-            "samples": 4,
-            "file": "/root/.julia/packages/DataStructures/qUuAY/src/priorityqueue.jl",
-            "func": "percolate_up!"
-        },
-        {
-            "line": 320,
-            "percentage": 0.13956734124214934,
-            "samples": 4,
-            "file": "/home/user/ATRIANeighbors.jl/src/tree.jl",
-            "func": "build_tree!"
-        },
-        {
-            "line": 2713,
-            "percentage": 0.13956734124214934,
-            "samples": 4,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/gc.c",
-            "func": "gc_mark_loop_serial"
-        },
-        {
-            "line": 687,
-            "percentage": 0.13956734124214934,
-            "samples": 4,
-            "file": "./math.jl",
-            "func": "sqrt"
-        },
-        {
-            "line": 2894,
-            "percentage": 0.13956734124214934,
-            "samples": 4,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/gc.c",
-            "func": "gc_mark_loop"
-        },
-        {
-            "line": 122,
-            "percentage": 0.13956734124214934,
-            "samples": 4,
-            "file": "/home/user/ATRIANeighbors.jl/src/pointsets.jl",
-            "func": "distance"
-        },
-        {
-            "line": 323,
-            "percentage": 0.104675505931612,
-            "samples": 3,
-            "file": "/root/.julia/packages/DataStructures/qUuAY/src/priorityqueue.jl",
-            "func": "popfirst!"
-        },
-        {
-            "line": 32,
-            "percentage": 0.104675505931612,
-            "samples": 3,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/support/hashing.c",
-            "func": "int64hash"
-        },
-        {
-            "line": 36,
-            "percentage": 0.104675505931612,
-            "samples": 3,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/support/hashing.c",
-            "func": "int64hash"
+            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/builtins.c",
+            "func": "immut_id_"
         },
         {
             "line": 325,
-            "percentage": 0.104675505931612,
-            "samples": 3,
+            "percentage": 0.2545608824777259,
+            "samples": 6,
             "file": "/home/user/ATRIANeighbors.jl/src/tree.jl",
             "func": "build_tree!"
         },
         {
             "line": 569,
-            "percentage": 0.104675505931612,
-            "samples": 3,
+            "percentage": 0.2545608824777259,
+            "samples": 6,
             "file": "./dict.jl",
             "func": "haskey"
         },
         {
-            "line": 3382,
-            "percentage": 0.104675505931612,
-            "samples": 3,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/gc.c",
-            "func": "_jl_gc_collect"
+            "line": 122,
+            "percentage": 0.2545608824777259,
+            "samples": 6,
+            "file": "/home/user/ATRIANeighbors.jl/src/pointsets.jl",
+            "func": "distance"
         },
         {
-            "line": 1426,
-            "percentage": 0.06978367062107467,
-            "samples": 2,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/gc.c",
-            "func": "gc_sweep_page"
+            "line": 199,
+            "percentage": 0.21213406873143828,
+            "samples": 5,
+            "file": "/root/.julia/packages/DataStructures/qUuAY/src/priorityqueue.jl",
+            "func": "percolate_up!"
+        },
+        {
+            "line": 179,
+            "percentage": 0.21213406873143828,
+            "samples": 5,
+            "file": "/root/.julia/packages/DataStructures/qUuAY/src/priorityqueue.jl",
+            "func": "percolate_down!"
+        },
+        {
+            "line": 186,
+            "percentage": 0.1697072549851506,
+            "samples": 4,
+            "file": "/root/.julia/packages/DataStructures/qUuAY/src/priorityqueue.jl",
+            "func": "percolate_down!"
+        },
+        {
+            "line": 36,
+            "percentage": 0.1697072549851506,
+            "samples": 4,
+            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/support/hashing.c",
+            "func": "int64hash"
+        },
+        {
+            "line": 410,
+            "percentage": 0.1697072549851506,
+            "samples": 4,
+            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/builtins.c",
+            "func": "immut_id_"
+        },
+        {
+            "line": 206,
+            "percentage": 0.12728044123886295,
+            "samples": 3,
+            "file": "/root/.julia/packages/DataStructures/qUuAY/src/priorityqueue.jl",
+            "func": "percolate_up!"
+        },
+        {
+            "line": 455,
+            "percentage": 0.12728044123886295,
+            "samples": 3,
+            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/builtins.c",
+            "func": "jl_object_id__cold"
         },
         {
             "line": 34,
-            "percentage": 0.06978367062107467,
+            "percentage": 0.12728044123886295,
+            "samples": 3,
+            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/support/hashing.c",
+            "func": "int64hash"
+        },
+        {
+            "line": 323,
+            "percentage": 0.12728044123886295,
+            "samples": 3,
+            "file": "/root/.julia/packages/DataStructures/qUuAY/src/priorityqueue.jl",
+            "func": "popfirst!"
+        },
+        {
+            "line": 83,
+            "percentage": 0.12728044123886295,
+            "samples": 3,
+            "file": "./int.jl",
+            "func": "<"
+        },
+        {
+            "line": -1,
+            "percentage": 0.12728044123886295,
+            "samples": 3,
+            "file": "/lib/x86_64-linux-gnu/libc.so.6",
+            "func": "posix_memalign"
+        },
+        {
+            "line": 272,
+            "percentage": 0.12728044123886295,
+            "samples": 3,
+            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/gc.c",
+            "func": "jl_malloc_aligned"
+        },
+        {
+            "line": 287,
+            "percentage": 0.12728044123886295,
+            "samples": 3,
+            "file": "/root/.julia/packages/DataStructures/qUuAY/src/priorityqueue.jl",
+            "func": "push!"
+        },
+        {
+            "line": 410,
+            "percentage": 0.12728044123886295,
+            "samples": 3,
+            "file": "./float.jl",
+            "func": "-"
+        },
+        {
+            "line": 647,
+            "percentage": 0.0848536274925753,
+            "samples": 2,
+            "file": "./essentials.jl",
+            "func": "ifelse"
+        },
+        {
+            "line": 320,
+            "percentage": 0.0848536274925753,
+            "samples": 2,
+            "file": "/home/user/ATRIANeighbors.jl/src/tree.jl",
+            "func": "build_tree!"
+        },
+        {
+            "line": 477,
+            "percentage": 0.0848536274925753,
+            "samples": 2,
+            "file": "./boot.jl",
+            "func": "Array"
+        },
+        {
+            "line": 301,
+            "percentage": 0.0848536274925753,
+            "samples": 2,
+            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/builtins.c",
+            "func": "bits_hash"
+        },
+        {
+            "line": 32,
+            "percentage": 0.0848536274925753,
             "samples": 2,
             "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/support/hashing.c",
             "func": "int64hash"
         },
         {
-            "line": 73,
-            "percentage": 0.06978367062107467,
+            "line": 1072,
+            "percentage": 0.0848536274925753,
             "samples": 2,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/work-stealing-queue.h",
-            "func": "ws_queue_pop"
+            "file": "./array.jl",
+            "func": "_growend!"
         },
         {
-            "line": 83,
-            "percentage": 0.06978367062107467,
-            "samples": 2,
-            "file": "./int.jl",
-            "func": "<"
-        },
-        {
-            "line": 0,
-            "percentage": 0.06978367062107467,
-            "samples": 2,
-            "file": "./simdloop.jl",
-            "func": "macro expansion"
-        },
-        {
-            "line": 410,
-            "percentage": 0.06978367062107467,
-            "samples": 2,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/builtins.c",
-            "func": "immut_id_"
-        },
-        {
-            "line": 312,
-            "percentage": 0.06978367062107467,
+            "line": 358,
+            "percentage": 0.0848536274925753,
             "samples": 2,
             "file": "./dict.jl",
-            "func": "ht_keyindex2_shorthash!"
+            "func": "_setindex!"
         },
         {
-            "line": 1835,
-            "percentage": 0.06978367062107467,
+            "line": 134,
+            "percentage": 0.0848536274925753,
             "samples": 2,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/gc.c",
-            "func": "gc_try_claim_and_push"
+            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/array.c",
+            "func": "_new_array_"
+        },
+        {
+            "line": 687,
+            "percentage": 0.0848536274925753,
+            "samples": 2,
+            "file": "./math.jl",
+            "func": "sqrt"
         },
         {
             "line": 696,
-            "percentage": 0.06978367062107467,
+            "percentage": 0.0848536274925753,
             "samples": 2,
             "file": "./dict.jl",
             "func": "delete!"
         },
         {
-            "line": 549,
-            "percentage": 0.06978367062107467,
-            "samples": 2,
-            "file": "./float.jl",
-            "func": "isless"
-        },
-        {
-            "line": 409,
-            "percentage": 0.06978367062107467,
-            "samples": 2,
-            "file": "./float.jl",
-            "func": "+"
-        },
-        {
-            "line": 427,
-            "percentage": 0.06978367062107467,
-            "samples": 2,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/builtins.c",
-            "func": "immut_id_"
-        },
-        {
             "line": 75,
-            "percentage": 0.034891835310537335,
+            "percentage": 0.04242681374628765,
             "samples": 1,
             "file": "./simdloop.jl",
             "func": "macro expansion"
         },
         {
-            "line": 35,
-            "percentage": 0.034891835310537335,
-            "samples": 1,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/support/hashing.c",
-            "func": "int64hash"
-        },
-        {
-            "line": 647,
-            "percentage": 0.034891835310537335,
-            "samples": 1,
-            "file": "./essentials.jl",
-            "func": "ifelse"
-        },
-        {
-            "line": 31,
-            "percentage": 0.034891835310537335,
-            "samples": 1,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/support/hashing.c",
-            "func": "int64hash"
-        },
-        {
-            "line": 455,
-            "percentage": 0.034891835310537335,
-            "samples": 1,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/builtins.c",
-            "func": "jl_object_id__cold"
-        },
-        {
             "line": 87,
-            "percentage": 0.034891835310537335,
+            "percentage": 0.04242681374628765,
             "samples": 1,
             "file": "./int.jl",
             "func": "+"
         },
         {
-            "line": 199,
-            "percentage": 0.034891835310537335,
+            "line": 467,
+            "percentage": 0.04242681374628765,
             "samples": 1,
-            "file": "/root/.julia/packages/DataStructures/qUuAY/src/priorityqueue.jl",
-            "func": "percolate_up!"
+            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/builtins.c",
+            "func": "ijl_object_id_"
         },
         {
-            "line": 1843,
-            "percentage": 0.034891835310537335,
+            "line": 534,
+            "percentage": 0.04242681374628765,
             "samples": 1,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/gc.c",
-            "func": "gc_mark_obj8"
+            "file": "./int.jl",
+            "func": ">>"
         },
         {
-            "line": 275,
-            "percentage": 0.034891835310537335,
-            "samples": 1,
-            "file": "./dict.jl",
-            "func": "ht_keyindex"
-        },
-        {
-            "line": 387,
-            "percentage": 0.034891835310537335,
-            "samples": 1,
-            "file": "./dict.jl",
-            "func": "setindex!"
-        },
-        {
-            "line": 536,
-            "percentage": 0.034891835310537335,
-            "samples": 1,
-            "file": "./float.jl",
-            "func": "<"
-        },
-        {
-            "line": 837,
-            "percentage": 0.034891835310537335,
-            "samples": 1,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/gc.c",
-            "func": "gc_try_setmark_tag"
-        },
-        {
-            "line": 252,
-            "percentage": 0.034891835310537335,
-            "samples": 1,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/usr/share/julia/stdlib/v1.10/Random/src/normal.jl",
-            "func": "randn"
-        },
-        {
-            "line": 375,
-            "percentage": 0.034891835310537335,
-            "samples": 1,
-            "file": "./dict.jl",
-            "func": "setindex!"
-        },
-        {
-            "line": 67,
-            "percentage": 0.034891835310537335,
-            "samples": 1,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/usr/share/julia/stdlib/v1.10/Random/src/normal.jl",
-            "func": "_randn"
-        },
-        {
-            "line": 129,
-            "percentage": 0.034891835310537335,
-            "samples": 1,
-            "file": "/home/user/ATRIANeighbors.jl/src/search.jl",
-            "func": "_push_child_clusters!"
-        },
-        {
-            "line": 400,
-            "percentage": 0.034891835310537335,
+            "line": 414,
+            "percentage": 0.04242681374628765,
             "samples": 1,
             "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/builtins.c",
             "func": "immut_id_"
         },
         {
+            "line": 393,
+            "percentage": 0.04242681374628765,
+            "samples": 1,
+            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/builtins.c",
+            "func": "immut_id_"
+        },
+        {
+            "line": 408,
+            "percentage": 0.04242681374628765,
+            "samples": 1,
+            "file": "/home/user/ATRIANeighbors.jl/src/tree.jl",
+            "func": "#ATRIA#3"
+        },
+        {
+            "line": 925,
+            "percentage": 0.04242681374628765,
+            "samples": 1,
+            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/array.c",
+            "func": "jl_array_grow_at_end"
+        },
+        {
+            "line": 892,
+            "percentage": 0.04242681374628765,
+            "samples": 1,
+            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/array.c",
+            "func": "jl_array_grow_at_end"
+        },
+        {
+            "line": 389,
+            "percentage": 0.04242681374628765,
+            "samples": 1,
+            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/builtins.c",
+            "func": "immut_id_"
+        },
+        {
+            "line": 38,
+            "percentage": 0.04242681374628765,
+            "samples": 1,
+            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/support/hashing.c",
+            "func": "int64hash"
+        },
+        {
             "line": 128,
-            "percentage": 0.034891835310537335,
+            "percentage": 0.04242681374628765,
             "samples": 1,
             "file": "/home/user/ATRIANeighbors.jl/src/search.jl",
             "func": "_push_child_clusters!"
         },
         {
             "line": 521,
-            "percentage": 0.034891835310537335,
+            "percentage": 0.04242681374628765,
             "samples": 1,
             "file": "./promotion.jl",
             "func": "=="
         },
         {
             "line": 33,
-            "percentage": 0.034891835310537335,
+            "percentage": 0.04242681374628765,
             "samples": 1,
             "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/support/hashing.c",
             "func": "int64hash"
         },
         {
-            "line": 1430,
-            "percentage": 0.034891835310537335,
+            "line": 516,
+            "percentage": 0.04242681374628765,
             "samples": 1,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/gc.c",
-            "func": "gc_sweep_page"
+            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/julia_internal.h",
+            "func": "jl_gc_alloc_buf"
         },
         {
-            "line": 433,
-            "percentage": 0.034891835310537335,
+            "line": 700,
+            "percentage": 0.04242681374628765,
             "samples": 1,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/builtins.c",
-            "func": "immut_id_"
+            "file": "./abstractarray.jl",
+            "func": "checkbounds"
         },
         {
-            "line": 72,
-            "percentage": 0.034891835310537335,
+            "line": 0,
+            "percentage": 0.04242681374628765,
             "samples": 1,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/usr/share/julia/stdlib/v1.10/Random/src/normal.jl",
-            "func": "randn_unlikely"
-        },
-        {
-            "line": 74,
-            "percentage": 0.034891835310537335,
-            "samples": 1,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/gc-heap-snapshot.h",
-            "func": "gc_heap_snapshot_record_array_edge"
-        },
-        {
-            "line": 292,
-            "percentage": 0.034891835310537335,
-            "samples": 1,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/gc.c",
-            "func": "jl_free_aligned"
+            "file": "./simdloop.jl",
+            "func": "macro expansion"
         },
         {
             "line": 37,
-            "percentage": 0.034891835310537335,
+            "percentage": 0.04242681374628765,
             "samples": 1,
             "file": "./Base.jl",
             "func": "getproperty"
         },
         {
-            "line": 1260,
-            "percentage": 0.034891835310537335,
+            "line": 281,
+            "percentage": 0.04242681374628765,
             "samples": 1,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/julia.h",
-            "func": "jl_field_isptr"
-        },
-        {
-            "line": -1,
-            "percentage": 0.034891835310537335,
-            "samples": 1,
-            "file": "/lib/x86_64-linux-gnu/libc.so.6",
-            "func": "posix_memalign"
+            "file": "/root/.julia/packages/DataStructures/qUuAY/src/priorityqueue.jl",
+            "func": "push!"
         },
         {
             "line": 37,
-            "percentage": 0.034891835310537335,
+            "percentage": 0.04242681374628765,
             "samples": 1,
             "file": "/home/user/ATRIANeighbors.jl/src/metrics.jl",
             "func": "distance"
         },
         {
             "line": 30,
-            "percentage": 0.034891835310537335,
+            "percentage": 0.04242681374628765,
             "samples": 1,
             "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/support/hashing.c",
             "func": "int64hash"
         },
         {
-            "line": 1216,
-            "percentage": 0.034891835310537335,
+            "line": 84,
+            "percentage": 0.04242681374628765,
             "samples": 1,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/julia.h",
-            "func": "jl_fielddesc_size"
+            "file": "./bitset.jl",
+            "func": "_setint!"
         },
         {
-            "line": 1956,
-            "percentage": 0.034891835310537335,
+            "line": 409,
+            "percentage": 0.04242681374628765,
             "samples": 1,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/gc.c",
-            "func": "gc_mark_objarray"
+            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/builtins.c",
+            "func": "immut_id_"
         },
         {
-            "line": 272,
-            "percentage": 0.034891835310537335,
+            "line": 312,
+            "percentage": 0.04242681374628765,
             "samples": 1,
-            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/gc.c",
-            "func": "jl_malloc_aligned"
+            "file": "./dict.jl",
+            "func": "ht_keyindex2_shorthash!"
         },
         {
-            "line": -1,
-            "percentage": 0.034891835310537335,
+            "line": 409,
+            "percentage": 0.04242681374628765,
             "samples": 1,
-            "file": "/lib/x86_64-linux-gnu/libc.so.6",
-            "func": "__libc_free"
+            "file": "./float.jl",
+            "func": "+"
+        },
+        {
+            "line": 456,
+            "percentage": 0.04242681374628765,
+            "samples": 1,
+            "file": "/cache/build/builder-amdci5-7/julialang/julia-release-1-dot-10/src/builtins.c",
+            "func": "jl_object_id__cold"
+        },
+        {
+            "line": 686,
+            "percentage": 0.04242681374628765,
+            "samples": 1,
+            "file": "./math.jl",
+            "func": "sqrt"
         }
     ],
     "metadata": {
         "command": "collect",
         "args": [
             "collect"
-        ]
+        ],
+        "package": "ATRIANeighbors"
     },
-    "timestamp": "2025-11-05T15:11:45.884",
-    "total_samples": 2866
+    "timestamp": "2025-11-05T19:44:11.267",
+    "total_samples": 2357
 }
