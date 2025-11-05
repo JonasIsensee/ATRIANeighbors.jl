@@ -79,8 +79,8 @@ function compare_profiles(profile1::ProfileData, profile2::ProfileData; top_n=20
     println()
 
     # Summary statistics
-    total_increase = sum(d[2] for d in differences if d[2] > 0)
-    total_decrease = sum(d[2] for d in differences if d[2] < 0)
+    total_increase = sum(d[2] for d in differences if d[2] > 0; init=0)
+    total_decrease = sum(d[2] for d in differences if d[2] < 0; init=0)
 
     println("Summary:")
     println("  Total sample changes: $total_increase (increases), $total_decrease (decreases)")
