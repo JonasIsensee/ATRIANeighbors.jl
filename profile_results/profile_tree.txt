@@ -1,32 +1,31 @@
 Overhead ╎ [+additional indent] Count File:Line; Function
 =========================================================
- ╎63 @Base/client.jl:557; _start()
- ╎ 63 @Base/client.jl:323; exec_options(opts::Base.JLOptions)
- ╎  63 @Base/Base.jl:495; include(mod::Module, _path::String)
- ╎   63 @Base/loading.jl:2206; _include(mapexpr::Function, mod::Module, _path::…
- ╎    63 @Base/loading.jl:2146; include_string(mapexpr::typeof(identity), mod::…
- ╎     63 @Base/boot.jl:385; eval
- ╎    ╎ 63 …rs/profile_minimal.jl:297; main()
- ╎    ╎  63 …rs/profile_minimal.jl:92; profile_to_file(filename::String, format…
- ╎    ╎   63 …rofile/src/Profile.jl:43; macro expansion
- ╎    ╎    54 …s/profile_minimal.jl:69; run_profiled_workload()
- ╎    ╎     54 …ghbors/src/search.jl:20; knn
- ╎    ╎    ╎ 53 …hbors/src/search.jl:26; knn(tree::ATRIATree{Float64, Int64, Eu…
- ╎    ╎    ╎  19 …hbors/src/search.jl:52; _search_knn!(tree::ATRIATree{Float64,…
- ╎    ╎    ╎   12 …c/priorityqueue.jl:324; popfirst!(pq::DataStructures.Priorit…
- ╎    ╎    ╎    10 …c/priorityqueue.jl:179; percolate_down!
- ╎    ╎    ╎     10 @Base/dict.jl:377; setindex!(h::Dict{SearchItem, Int64}, v0…
- ╎    ╎    ╎    ╎ 8  @Base/dict.jl:295; ht_keyindex2_shorthash!(h::Dict{SearchI…
- ╎    ╎    ╎    ╎  8  @Base/dict.jl:156; hashindex
- ╎    ╎    ╎    ╎   8  @Base/hashing.jl:28; hash
- ╎    ╎    ╎    ╎    8  @Base/hashing.jl:34; hash
- ╎    ╎    ╎    ╎     8  …e/reflection.jl:611; objectid
- ╎    ╎    ╎  20 …hbors/src/search.jl:65; _search_knn!(tree::ATRIATree{Float64,…
- ╎    ╎    ╎   15 …bors/src/search.jl:113; _search_terminal_node!
- ╎    ╎    ╎    15 …s/src/pointsets.jl:122; distance
- ╎    ╎    ╎     13 …ors/src/metrics.jl:33; distance
- ╎    ╎    ╎    ╎ 9  @Base/simdloop.jl:77; macro expansion
- ╎    ╎    ╎    ╎  7  …rs/src/metrics.jl:34; macro expansion
- ╎    ╎    ╎    ╎   5  @Base/subarray.jl:317; getindex
-5╎    ╎    ╎    ╎    5  …se/essentials.jl:13; getindex
-Total snapshots: 63. Utilization: 100% across all threads and tasks. Use the `groupby` kwarg to break down by thread and/or task.
+ ╎65 @Base/client.jl:557; _start()
+ ╎ 65 @Base/client.jl:323; exec_options(opts::Base.JLOptions)
+ ╎  65 @Base/Base.jl:495; include(mod::Module, _path::String)
+ ╎   65 @Base/loading.jl:2206; _include(mapexpr::Function, mod::Module, _path::…
+ ╎    65 @Base/loading.jl:2146; include_string(mapexpr::typeof(identity), mod::…
+ ╎     65 @Base/boot.jl:385; eval
+ ╎    ╎ 65 …rs/profile_minimal.jl:297; main()
+ ╎    ╎  65 …rs/profile_minimal.jl:92; profile_to_file(filename::String, format…
+ ╎    ╎   65 …rofile/src/Profile.jl:43; macro expansion
+ ╎    ╎    56 …s/profile_minimal.jl:69; run_profiled_workload()
+ ╎    ╎     56 …ghbors/src/search.jl:20; knn
+ ╎    ╎    ╎ 56 …hbors/src/search.jl:26; knn(tree::ATRIATree{Float64, Int64, Eu…
+ ╎    ╎    ╎  16 …hbors/src/search.jl:52; _search_knn!(tree::ATRIATree{Float64,…
+ ╎    ╎    ╎   11 …c/priorityqueue.jl:324; popfirst!(pq::DataStructures.Priorit…
+1╎    ╎    ╎    10 …c/priorityqueue.jl:179; percolate_down!
+ ╎    ╎    ╎     8  @Base/dict.jl:377; setindex!(h::Dict{SearchItem, Int64}, v0…
+ ╎    ╎    ╎    ╎ 5  @Base/dict.jl:295; ht_keyindex2_shorthash!(h::Dict{SearchI…
+ ╎    ╎    ╎    ╎  5  @Base/dict.jl:156; hashindex
+ ╎    ╎    ╎    ╎   5  @Base/hashing.jl:28; hash
+ ╎    ╎    ╎    ╎    5  @Base/hashing.jl:34; hash
+ ╎    ╎    ╎    ╎     5  …e/reflection.jl:611; objectid
+ ╎    ╎    ╎  28 …hbors/src/search.jl:65; _search_knn!(tree::ATRIATree{Float64,…
+ ╎    ╎    ╎   22 …bors/src/search.jl:113; _search_terminal_node!
+ ╎    ╎    ╎    22 …s/src/pointsets.jl:122; distance
+ ╎    ╎    ╎     19 …ors/src/metrics.jl:33; distance
+ ╎    ╎    ╎    ╎ 14 @Base/simdloop.jl:77; macro expansion
+ ╎    ╎    ╎    ╎  11 …rs/src/metrics.jl:34; macro expansion
+9╎    ╎    ╎    ╎   9  @Base/float.jl:410; -
+Total snapshots: 65. Utilization: 100% across all threads and tasks. Use the `groupby` kwarg to break down by thread and/or task.
