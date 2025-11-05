@@ -263,7 +263,7 @@ Automatically detects patterns and suggests:
 
 ## Dependencies Added
 
-- `JSON3` - For structured data serialization
+- `JSON` - For structured data serialization
 
 ## Future Enhancements
 

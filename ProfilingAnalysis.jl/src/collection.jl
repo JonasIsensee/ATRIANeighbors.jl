@@ -6,7 +6,7 @@ Profile data collection and I/O operations.
 
 using Profile
 using Dates
-using JSON3
+using JSON
 
 """
     collect_profile_data(workload_fn::Function; metadata=Dict{String,Any}())
@@ -106,7 +106,7 @@ function save_profile(profile::ProfileData, filename::String)
     )
 
     open(filename, "w") do io
-        JSON3.pretty(io, data)
+        JSON.print(io, data, 4)  # 4-space indent for pretty printing
     end
 
     println("Profile data saved to: $filename")
@@ -120,7 +120,7 @@ end
 Load profile data from JSON file.
 """
 function load_profile(filename::String)
-    data = JSON3.read(read(filename, String))
+    data = JSON.parse(read(filename, String))
 
     entries = [
         ProfileEntry(

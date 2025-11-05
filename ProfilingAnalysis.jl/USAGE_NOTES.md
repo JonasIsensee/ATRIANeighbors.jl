@@ -256,7 +256,7 @@ The package requires:
 - Statistics (standard library)
 - Dates (standard library)
 - Printf (standard library)
-- JSON3.jl (external dependency)
+- JSON.jl (external dependency)
 
 ## Future Enhancements
 

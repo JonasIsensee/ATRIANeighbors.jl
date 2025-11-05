@@ -201,7 +201,7 @@ print_entry_table(my_code[1:min(20, length(my_code))])
 ## Requirements
 
 - Julia 1.10 or later (for @main support, use Julia 1.11+)
-- JSON3.jl
+- JSON.jl
 
 ## License
 
