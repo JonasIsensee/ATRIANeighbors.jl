@@ -76,7 +76,7 @@ end
 
 Search within a terminal cluster node.
 """
-function _search_terminal_node!(tree::ATRIATree, c::Cluster, si::SearchItem, query_point, table::SortedNeighborTable, first::Int, last::Int)
+@inline function _search_terminal_node!(tree::ATRIATree, c::Cluster, si::SearchItem, query_point, table::SortedNeighborTable, first::Int, last::Int)
     section_start = c.start
     section_end = c.start + c.length - 1
 
@@ -86,7 +86,7 @@ function _search_terminal_node!(tree::ATRIATree, c::Cluster, si::SearchItem, que
     if Rmax == 0.0
         # Special case: all points at same location as center
         # Distances are pre-computed in permutation table
-        for i in section_start:section_end
+        @inbounds for i in section_start:section_end
             neighbor = tree.permutation_table[i]
             j = neighbor.index
 
@@ -101,7 +101,7 @@ function _search_terminal_node!(tree::ATRIATree, c::Cluster, si::SearchItem, que
         end
     else
         # General case: use triangle inequality with precomputed distances
-        for i in section_start:section_end
+        @inbounds for i in section_start:section_end
             neighbor = tree.permutation_table[i]
             j = neighbor.index
 
@@ -123,7 +123,7 @@ end
 
 Push child clusters onto priority queue for k-NN search.
 """
-function _push_child_clusters!(tree::ATRIATree, c::Cluster, parent_si::SearchItem, query_point, pq::PriorityQueue)
+@inline function _push_child_clusters!(tree::ATRIATree, c::Cluster, parent_si::SearchItem, query_point, pq::PriorityQueue)
     # Compute distances to child centers
     d_left = distance(tree.points, c.left.center, query_point)
     d_right = distance(tree.points, c.right.center, query_point)
@@ -154,7 +154,10 @@ Search for all neighbors within distance `radius` using the ATRIA tree.
 function range_search(tree::ATRIATree, query_point, radius::Float64; exclude_range::Tuple{Int,Int}=(-1,-1))
     first, last = exclude_range
     results = Neighbor[]
-    seen_indices = Set{Int}()  # Track which points we've already added
+
+    # Use BitVector for fast duplicate detection (O(1) lookup vs O(log n) for Set)
+    N, D = size(tree.points)
+    seen_indices = falses(N)
 
     # Use stack for depth-first search
     stack = SearchItem[]
@@ -171,9 +174,9 @@ function range_search(tree::ATRIATree, query_point, radius::Float64; exclude_ran
         if radius >= si.d_min
             # Test cluster center if within radius and not excluded
             if (c.center < first || c.center > last) && si.dist <= radius
-                if !(c.center in seen_indices)
+                if !seen_indices[c.center]
                     push!(results, Neighbor(c.center, si.dist))
-                    push!(seen_indices, c.center)
+                    seen_indices[c.center] = true
                 end
             end
 
@@ -195,7 +198,7 @@ end
 
 Range search within a terminal cluster node.
 """
-function _range_search_terminal_node!(tree::ATRIATree, c::Cluster, si::SearchItem, query_point, radius::Float64, first::Int, last::Int, results::Vector{Neighbor}, seen_indices::Set{Int})
+@inline function _range_search_terminal_node!(tree::ATRIATree, c::Cluster, si::SearchItem, query_point, radius::Float64, first::Int, last::Int, results::Vector{Neighbor}, seen_indices::BitVector)
     section_start = c.start
     section_end = c.start + c.length - 1
 
@@ -204,25 +207,25 @@ function _range_search_terminal_node!(tree::ATRIATree, c::Cluster, si::SearchIte
 
     if Rmax == 0.0
         # Special case: all points at same location as center
-        for i in section_start:section_end
+        @inbounds for i in section_start:section_end
             neighbor = tree.permutation_table[i]
             j = neighbor.index
 
             if (j < first || j > last) && si.dist <= radius
-                if !(j in seen_indices)
+                if !seen_indices[j]
                     push!(results, Neighbor(j, si.dist))
-                    push!(seen_indices, j)
+                    seen_indices[j] = true
                 end
             end
         end
     else
         # General case: use triangle inequality
-        for i in section_start:section_end
+        @inbounds for i in section_start:section_end
             neighbor = tree.permutation_table[i]
             j = neighbor.index
 
             if j < first || j > last
-                if !(j in seen_indices)
+                if !seen_indices[j]
                     # Triangle inequality pruning
                     lower_bound = abs(si.dist - neighbor.distance)
                     if radius >= lower_bound
@@ -230,7 +233,7 @@ function _range_search_terminal_node!(tree::ATRIATree, c::Cluster, si::SearchIte
                         d = distance(tree.points, j, query_point)
                         if d <= radius
                             push!(results, Neighbor(j, d))
-                            push!(seen_indices, j)
+                            seen_indices[j] = true
                         end
                     end
                 end
@@ -244,7 +247,7 @@ end
 
 Push child clusters onto stack for range search.
 """
-function _push_child_clusters_stack!(tree::ATRIATree, c::Cluster, parent_si::SearchItem, query_point, stack::Vector{SearchItem})
+@inline function _push_child_clusters_stack!(tree::ATRIATree, c::Cluster, parent_si::SearchItem, query_point, stack::Vector{SearchItem})
     # Compute distances to child centers
     d_left = distance(tree.points, c.left.center, query_point)
     d_right = distance(tree.points, c.right.center, query_point)
@@ -275,7 +278,10 @@ Count how many neighbors are within distance `radius` (correlation sum).
 function count_range(tree::ATRIATree, query_point, radius::Float64; exclude_range::Tuple{Int,Int}=(-1,-1))
     first, last = exclude_range
     count = 0
-    seen_indices = Set{Int}()  # Track which points we've already counted
+
+    # Use BitVector for fast duplicate detection
+    N, D = size(tree.points)
+    seen_indices = falses(N)
 
     # Use stack for depth-first search
     stack = SearchItem[]
@@ -292,9 +298,9 @@ function count_range(tree::ATRIATree, query_point, radius::Float64; exclude_rang
         if radius >= si.d_min
             # Test cluster center if within radius and not excluded
             if (c.center < first || c.center > last) && si.dist <= radius
-                if !(c.center in seen_indices)
+                if !seen_indices[c.center]
                     count += 1
-                    push!(seen_indices, c.center)
+                    seen_indices[c.center] = true
                 end
             end
 
@@ -316,7 +322,7 @@ end
 
 Count points within radius in a terminal cluster node.
 """
-function _count_terminal_node!(tree::ATRIATree, c::Cluster, si::SearchItem, query_point, radius::Float64, first::Int, last::Int, seen_indices::Set{Int})
+@inline function _count_terminal_node!(tree::ATRIATree, c::Cluster, si::SearchItem, query_point, radius::Float64, first::Int, last::Int, seen_indices::BitVector)
     count = 0
     section_start = c.start
     section_end = c.start + c.length - 1
@@ -326,25 +332,25 @@ function _count_terminal_node!(tree::ATRIATree, c::Cluster, si::SearchItem, quer
 
     if Rmax == 0.0
         # Special case: all points at same location as center
-        for i in section_start:section_end
+        @inbounds for i in section_start:section_end
             neighbor = tree.permutation_table[i]
             j = neighbor.index
 
             if (j < first || j > last) && si.dist <= radius
-                if !(j in seen_indices)
+                if !seen_indices[j]
                     count += 1
-                    push!(seen_indices, j)
+                    seen_indices[j] = true
                 end
             end
         end
     else
         # General case: use triangle inequality
-        for i in section_start:section_end
+        @inbounds for i in section_start:section_end
             neighbor = tree.permutation_table[i]
             j = neighbor.index
 
             if j < first || j > last
-                if !(j in seen_indices)
+                if !seen_indices[j]
                     # Triangle inequality pruning
                     lower_bound = abs(si.dist - neighbor.distance)
                     if radius >= lower_bound
@@ -352,7 +358,7 @@ function _count_terminal_node!(tree::ATRIATree, c::Cluster, si::SearchItem, quer
                         d = distance(tree.points, j, query_point)
                         if d <= radius
                             count += 1
-                            push!(seen_indices, j)
+                            seen_indices[j] = true
                         end
                     end
                 end
