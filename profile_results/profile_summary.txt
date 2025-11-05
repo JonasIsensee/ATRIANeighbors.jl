@@ -1,0 +1,85 @@
+================================================================================
+ATRIANeighbors.jl Profile Analysis Summary
+Generated: 2025-11-05 14:41:51
+================================================================================
+
+Total samples: 2424
+Unique function/line combinations: 78
+
+================================================================================
+Top 30 Hotspots (by sample count)
+================================================================================
+
+Rank   Samples    % Total    Function (File:Line)                                        
+--------------------------------------------------------------------------------
+1      315        13.00       (:-1)
+2      252        10.40      _jl_invoke (/cache/build/builder-amdci5-7/julialang/julia...
+3      70         2.89        (/lib/x86_64-linux-gnu/libc.so.6:-1)
+4      63         2.60       include (./Base.jl:495)
+5      63         2.60       exec_options (./client.jl:323)
+6      63         2.60       __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6:-1)
+7      63         2.60       main (/cache/build/builder-amdci5-7/julialang/julia-relea...
+8      63         2.60       macro expansion (/cache/build/builder-amdci5-7/julialang/...
+9      63         2.60       _include (./loading.jl:2206)
+10     63         2.60        (/workspace/srcdir/glibc-2.17/csu/../sysdeps/x86_64/star...
+11     63         2.60       ijl_toplevel_eval_in (/cache/build/builder-amdci5-7/julia...
+12     63         2.60       jfptr_include_46653.1 (/root/.julia/juliaup/julia-1.10.10...
+13     63         2.60       eval (./boot.jl:385)
+14     63         2.60       main (/home/user/ATRIANeighbors.jl/profile_minimal.jl:297)
+15     63         2.60       eval_value (/cache/build/builder-amdci5-7/julialang/julia...
+16     63         2.60       _start (./client.jl:557)
+17     63         2.60       eval_stmt_value (/cache/build/builder-amdci5-7/julialang/...
+18     63         2.60       jfptr__start_83114.1 (/root/.julia/juliaup/julia-1.10.10+...
+19     54         2.23       knn (/home/user/ATRIANeighbors.jl/src/search.jl:20)
+20     53         2.19       #knn#4 (/home/user/ATRIANeighbors.jl/src/search.jl:26)
+21     25         1.03       setindex! (./dict.jl:377)
+22     20         0.83       _objectid (./reflection.jl:617)
+23     19         0.78       _search_knn! (/home/user/ATRIANeighbors.jl/src/search.jl:52)
+24     10         0.41       percolate_down! (/root/.julia/packages/DataStructures/qUu...
+25     9          0.37       _push_child_clusters! (/home/user/ATRIANeighbors.jl/src/s...
+26     9          0.37       bitmix (/cache/build/builder-amdci5-7/julialang/julia-rel...
+27     8          0.33       ATRIA (/home/user/ATRIANeighbors.jl/src/tree.jl:393)
+28     7          0.29       getindex (./essentials.jl:13)
+29     6          0.25       percolate_up! (/root/.julia/packages/DataStructures/qUuAY...
+30     6          0.25       distance (/home/user/ATRIANeighbors.jl/src/pointsets.jl:122)
+
+================================================================================
+Bottleneck Identification
+================================================================================
+
+ATRIANeighbors-specific hotspots (Top 15):
+
+1  . [63    samples,  2.60%] main (/home/user/ATRIANeighbors.jl/profile_minimal.jl:297)
+2  . [54    samples,  2.23%] knn (/home/user/ATRIANeighbors.jl/src/search.jl:20)
+3  . [53    samples,  2.19%] #knn#4 (/home/user/ATRIANeighbors.jl/src/search.jl:26)
+4  . [19    samples,  0.78%] _search_knn! (/home/user/ATRIANeighbors.jl/src/search.jl:52)
+5  . [9     samples,  0.37%] _push_child_clusters! (/home/user/ATRIANeighbors.jl/src/search.jl:136)
+6  . [8     samples,  0.33%] ATRIA (/home/user/ATRIANeighbors.jl/src/tree.jl:393)
+7  . [6     samples,  0.25%] distance (/home/user/ATRIANeighbors.jl/src/pointsets.jl:122)
+8  . [6     samples,  0.25%] #ATRIA#3 (/home/user/ATRIANeighbors.jl/src/tree.jl:411)
+9  . [5     samples,  0.21%] build_tree! (/home/user/ATRIANeighbors.jl/src/tree.jl:325)
+10 . [4     samples,  0.17%] _push_child_clusters! (/home/user/ATRIANeighbors.jl/src/search.jl:137)
+11 . [2     samples,  0.08%] #ATRIA#3 (/home/user/ATRIANeighbors.jl/src/tree.jl:408)
+12 . [2     samples,  0.08%] insert! (/home/user/ATRIANeighbors.jl/src/structures.jl:181)
+13 . [1     samples,  0.04%] distance (/home/user/ATRIANeighbors.jl/src/metrics.jl:37)
+14 . [1     samples,  0.04%] build_tree! (/home/user/ATRIANeighbors.jl/src/tree.jl:320)
+15 . [1     samples,  0.04%] _search_knn! (/home/user/ATRIANeighbors.jl/src/search.jl:45)
+
+Total ATRIANeighbors samples: 234 / 2424 (9.65%)
+
+================================================================================
+Performance Recommendations
+================================================================================
+
+DISTANCE CALCULATIONS IN HOT PATH:
+  - Add @inbounds macro for array access in distance functions
+  - Use @simd for vectorization in loops
+  - Implement early termination more aggressively (partial distance calculation)
+  - Consider @inline annotation for small distance functions
+
+SEARCH OPERATIONS IN HOT PATH:
+  - Optimize priority queue operations in best-first search
+  - Reduce allocations in search loop
+  - Consider using @inbounds for permutation table access
+
+================================================================================
