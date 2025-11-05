@@ -28,7 +28,7 @@ struct EuclideanMetric <: Metric end
 
 Compute full Euclidean distance between two points.
 """
-function distance(::EuclideanMetric, p1, p2)
+@inline function distance(::EuclideanMetric, p1, p2)
     sum_sq = 0.0
     @inbounds @simd for i in eachindex(p1)
         diff = p1[i] - p2[i]
@@ -45,7 +45,7 @@ Compute Euclidean distance with early termination.
 If the distance exceeds `thresh`, the calculation stops early and returns
 a value >= thresh. This is a key optimization for the ATRIA algorithm.
 """
-function distance(::EuclideanMetric, p1, p2, thresh::Float64)
+@inline function distance(::EuclideanMetric, p1, p2, thresh::Float64)
     thresh_sq = thresh * thresh
     sum_sq = 0.0
 

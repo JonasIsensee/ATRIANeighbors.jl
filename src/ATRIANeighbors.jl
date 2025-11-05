@@ -23,6 +23,9 @@ include("tree.jl")
 export ATRIATree, ATRIA
 export tree_depth, count_nodes, average_terminal_size, print_tree_stats
 
+# MinHeap for efficient priority queue operations
+include("minheap.jl")
+
 # Search algorithms
 include("search.jl")
 export knn, range_search, count_range

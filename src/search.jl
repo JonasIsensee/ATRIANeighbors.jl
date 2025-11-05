@@ -1,7 +1,5 @@
 # ATRIA nearest neighbor search algorithms
 
-using DataStructures: PriorityQueue
-
 """
     knn(tree::ATRIATree, query_point; k::Int=1, epsilon::Float64=0.0, exclude_range::Tuple{Int,Int}=(-1,-1))
 
@@ -37,19 +35,18 @@ Internal function implementing ATRIA k-NN search using best-first strategy with 
 function _search_knn!(tree::ATRIATree, query_point, table::SortedNeighborTable, epsilon::Float64, exclude_range::Tuple{Int,Int})
     first, last = exclude_range
 
-    # Create priority queue for best-first search (min-heap by d_min)
-    # Use negative d_min so DataStructures.PriorityQueue gives us min-heap behavior
-    pq = PriorityQueue{SearchItem, Float64}()
+    # Create MinHeap for best-first search (min-heap by d_min)
+    pq = MinHeap{SearchItem}()
 
     # Calculate distance to root center
     root_dist = distance(tree.points, tree.root.center, query_point)
 
     # Push root onto queue
     root_si = SearchItem(tree.root, root_dist)
-    push!(pq, root_si => root_si.d_min)
+    push!(pq, root_si)
 
     while !isempty(pq)
-        si = popfirst!(pq).first
+        si = popfirst!(pq)
         c = si.cluster
 
         # Test cluster center if not excluded
@@ -121,9 +118,9 @@ end
 """
     _push_child_clusters!(tree, cluster, parent_si, query_point, pq)
 
-Push child clusters onto priority queue for k-NN search.
+Push child clusters onto MinHeap for k-NN search.
 """
-@inline function _push_child_clusters!(tree::ATRIATree, c::Cluster, parent_si::SearchItem, query_point, pq::PriorityQueue)
+@inline function _push_child_clusters!(tree::ATRIATree, c::Cluster, parent_si::SearchItem, query_point, pq::MinHeap{SearchItem})
     # Compute distances to child centers
     d_left = distance(tree.points, c.left.center, query_point)
     d_right = distance(tree.points, c.right.center, query_point)
@@ -132,9 +129,9 @@ Push child clusters onto priority queue for k-NN search.
     si_left = SearchItem(c.left, d_left, d_right, parent_si)
     si_right = SearchItem(c.right, d_right, d_left, parent_si)
 
-    # Push onto priority queue (will be ordered by d_min)
-    push!(pq, si_left => si_left.d_min)
-    push!(pq, si_right => si_right.d_min)
+    # Push onto MinHeap (will be ordered by d_min)
+    push!(pq, si_left)
+    push!(pq, si_right)
 end
 
 """
