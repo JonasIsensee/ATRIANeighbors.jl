@@ -118,8 +118,13 @@ end
 Compute distance between the i-th point and an external query point.
 """
 @inline function distance(ps::PointSet, i::Int, query)
-    p = getpoint(ps, i)
-    return distance(ps.metric, p, query)
+    # Specialized implementation for EuclideanMetric to avoid view overhead
+    if ps.metric isa EuclideanMetric
+        return _euclidean_distance_row(ps.data, i, query)
+    else
+        p = getpoint(ps, i)
+        return distance(ps.metric, p, query)
+    end
 end
 
 """
@@ -128,8 +133,53 @@ end
 Compute distance with early termination threshold.
 """
 @inline function distance(ps::PointSet, i::Int, query, thresh::Float64)
-    p = getpoint(ps, i)
-    return distance(ps.metric, p, query, thresh)
+    # Specialized implementation for EuclideanMetric to avoid view overhead
+    if ps.metric isa EuclideanMetric
+        return _euclidean_distance_row_thresh(ps.data, i, query, thresh)
+    else
+        p = getpoint(ps, i)
+        return distance(ps.metric, p, query, thresh)
+    end
+end
+
+# Specialized implementations for Euclidean distance that work directly with matrix rows
+# This avoids the overhead of creating views
+
+"""
+    _euclidean_distance_row(data::Matrix, row::Int, query) -> Float64
+
+Compute Euclidean distance between a row of data and a query point.
+Optimized to avoid view overhead.
+"""
+@inline function _euclidean_distance_row(data::Matrix{T}, row::Int, query) where T
+    sum_sq = zero(T)
+    @inbounds for j in 1:size(data, 2)
+        diff = data[row, j] - query[j]
+        sum_sq += diff * diff
+    end
+    return sqrt(sum_sq)
+end
+
+"""
+    _euclidean_distance_row_thresh(data::Matrix, row::Int, query, thresh::Float64) -> Float64
+
+Compute Euclidean distance with early termination.
+Optimized to avoid view overhead.
+"""
+@inline function _euclidean_distance_row_thresh(data::Matrix{T}, row::Int, query, thresh::Float64) where T
+    thresh_sq = thresh * thresh
+    sum_sq = zero(T)
+
+    @inbounds for j in 1:size(data, 2)
+        diff = data[row, j] - query[j]
+        sum_sq += diff * diff
+        # Early termination
+        if sum_sq > thresh_sq
+            return thresh + 1.0
+        end
+    end
+
+    return sqrt(sum_sq)
 end
 
 """

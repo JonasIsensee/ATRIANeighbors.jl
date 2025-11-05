@@ -190,8 +190,8 @@ function finish_search(table::SortedNeighborTable)
 end
 
 # Helper functions for max heap operations
-function heapify_up!(heap::Vector{Neighbor}, idx::Int)
-    while idx > 1
+@inline function heapify_up!(heap::Vector{Neighbor}, idx::Int)
+    @inbounds while idx > 1
         parent = idx ÷ 2
         if heap[idx].distance > heap[parent].distance
             heap[idx], heap[parent] = heap[parent], heap[idx]
@@ -202,9 +202,9 @@ function heapify_up!(heap::Vector{Neighbor}, idx::Int)
     end
 end
 
-function heapify_down!(heap::Vector{Neighbor}, idx::Int)
+@inline function heapify_down!(heap::Vector{Neighbor}, idx::Int)
     n = length(heap)
-    while true
+    @inbounds while true
         largest = idx
         left = 2 * idx
         right = 2 * idx + 1
