@@ -30,7 +30,7 @@ Compute full Euclidean distance between two points.
 """
 @inline function distance(::EuclideanMetric, p1, p2)
     sum_sq = 0.0
-    @inbounds @simd for i in eachindex(p1)
+    @inbounds for i in eachindex(p1)
         diff = p1[i] - p2[i]
         sum_sq += diff * diff
     end
@@ -83,7 +83,7 @@ Compute squared Euclidean distance between two points.
 """
 function distance(::SquaredEuclideanMetric, p1, p2)
     sum_sq = 0.0
-    @inbounds @simd for i in eachindex(p1)
+    @inbounds for i in eachindex(p1)
         diff = p1[i] - p2[i]
         sum_sq += diff * diff
     end
@@ -130,7 +130,7 @@ Compute maximum distance between two points.
 """
 function distance(::MaximumMetric, p1, p2)
     max_dist = 0.0
-    @inbounds @simd for i in eachindex(p1)
+    @inbounds for i in eachindex(p1)
         diff = abs(p1[i] - p2[i])
         max_dist = max(max_dist, diff)
     end
