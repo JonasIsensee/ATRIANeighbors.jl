@@ -204,3 +204,4 @@ The `materials/` directory contains the original C++ implementation:
 - **`materials/NNSearcher/point_set.h`**: Point set abstractions
 
 See `MATERIALS_OVERVIEW.md` for detailed analysis of the C++ implementation.
+- NEVER edit the manifest file manually.
