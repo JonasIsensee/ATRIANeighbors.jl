@@ -8,6 +8,8 @@ fi
 curl -fsSL https://install.julialang.org > juliaup.sh
 sh juliaup.sh -y --default-channel release
 $HOME/.juliaup/bin/juliaup add release
+$HOME/.juliaup/bin/juliaup add 1.11
+$HOME/.juliaup/bin/juliaup default 1.11
 $HOME/.juliaup/bin/juliaup config channelsymlinks true
 
 if [ -n "$CLAUDE_ENV_FILE" ]; then
