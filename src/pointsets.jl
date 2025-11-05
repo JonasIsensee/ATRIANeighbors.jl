@@ -3,6 +3,41 @@
 using LinearAlgebra
 
 """
+    EmbeddedPoint{T} <: AbstractVector{T}
+
+Zero-allocation view into an embedded time series point.
+
+This is a custom view type that provides AbstractVector interface
+without allocating a new vector. It lazily computes indices into
+the original time series data.
+
+# Fields
+- `data::Vector{T}`: The original time series
+- `start_idx::Int`: Starting index in the time series
+- `dim::Int`: Embedding dimension
+- `delay::Int`: Time delay
+"""
+struct EmbeddedPoint{T} <: AbstractVector{T}
+    data::Vector{T}
+    start_idx::Int
+    dim::Int
+    delay::Int
+end
+
+Base.size(v::EmbeddedPoint) = (v.dim,)
+Base.length(v::EmbeddedPoint) = v.dim
+@inline Base.getindex(v::EmbeddedPoint, i::Int) = v.data[v.start_idx + (i - 1) * v.delay]
+Base.IndexStyle(::Type{<:EmbeddedPoint}) = IndexLinear()
+
+# Implement iterate for compatibility
+@inline function Base.iterate(v::EmbeddedPoint, state=1)
+    state > v.dim ? nothing : (v[state], state + 1)
+end
+
+# Implement eachindex for better performance
+@inline Base.eachindex(v::EmbeddedPoint) = Base.OneTo(v.dim)
+
+"""
     AbstractPointSet{T,D,M<:Metric}
 
 Abstract base type for all point set representations.
@@ -160,19 +195,16 @@ function Base.size(ps::EmbeddedTimeSeries)
 end
 
 """
-    getpoint(ps::EmbeddedTimeSeries, i::Int) -> Vector
+    getpoint(ps::EmbeddedTimeSeries, i::Int) -> EmbeddedPoint
 
-Get the i-th embedded point.
+Get the i-th embedded point as a zero-allocation view.
 
-Returns a new vector (cannot be a view since it's non-contiguous in original data).
+Returns an EmbeddedPoint which implements AbstractVector interface
+without allocating a new vector. This is a critical optimization since
+getpoint is called thousands of times during tree construction and search.
 """
-function getpoint(ps::EmbeddedTimeSeries{T}, i::Int) where {T}
-    point = Vector{T}(undef, ps.dim)
-    start_idx = i
-    @inbounds for d in 1:ps.dim
-        point[d] = ps.data[start_idx + (d - 1) * ps.delay]
-    end
-    return point
+@inline function getpoint(ps::EmbeddedTimeSeries{T}, i::Int) where {T}
+    return EmbeddedPoint(ps.data, i, ps.dim, ps.delay)
 end
 
 """
@@ -180,12 +212,10 @@ end
 
 Compute distance between the i-th and j-th embedded points.
 
-Optimized to avoid allocating the full embedded vectors.
+Uses EmbeddedPoint views to avoid allocating full embedded vectors.
 """
-function distance(ps::EmbeddedTimeSeries, i::Int, j::Int)
-    # Build temporary views/vectors for the metric
-    # For efficiency, we could inline the distance calculation here,
-    # but for now we'll use the standard approach
+@inline function distance(ps::EmbeddedTimeSeries, i::Int, j::Int)
+    # EmbeddedPoint views are now zero-allocation
     p1 = getpoint(ps, i)
     p2 = getpoint(ps, j)
     return distance(ps.metric, p1, p2)
@@ -196,7 +226,7 @@ end
 
 Compute distance between the i-th embedded point and a query point.
 """
-function distance(ps::EmbeddedTimeSeries, i::Int, query)
+@inline function distance(ps::EmbeddedTimeSeries, i::Int, query)
     p = getpoint(ps, i)
     return distance(ps.metric, p, query)
 end
@@ -206,7 +236,7 @@ end
 
 Compute distance with early termination threshold.
 """
-function distance(ps::EmbeddedTimeSeries, i::Int, query, thresh::Float64)
+@inline function distance(ps::EmbeddedTimeSeries, i::Int, query, thresh::Float64)
     p = getpoint(ps, i)
     return distance(ps.metric, p, query, thresh)
 end
