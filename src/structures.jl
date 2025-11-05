@@ -124,6 +124,9 @@ Maintains a priority queue of the k nearest neighbors found so far.
 - `neighbors::Vector{Neighbor}`: Current k-nearest neighbors (max heap)
 - `high_dist::Float64`: Distance to the k-th nearest neighbor (or Inf if < k found)
 - `seen::BitSet`: Track which point indices have been inserted (for duplicate prevention)
+
+NOTE: Unlike C++ ATRIA, we need duplicate checking because centers can be visited
+multiple times through different paths in the tree. The BitSet provides O(1) lookup.
 """
 mutable struct SortedNeighborTable
     k::Int
