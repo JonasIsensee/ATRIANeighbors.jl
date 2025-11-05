@@ -2,3 +2,20 @@ name = "ATRIANeighbors"
 uuid = "755e7342-a613-45f4-964f-af18d339e2a3"
 version = "0.1.0"
 authors = ["Jonas Isensee <jonas.isensee@web.de>"]
+
+[deps]
+DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+
+[compat]
+DataStructures = "0.18"
+StaticArrays = "1.0"
+julia = "1.6"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+
+[targets]
+test = ["Test", "BenchmarkTools"]
