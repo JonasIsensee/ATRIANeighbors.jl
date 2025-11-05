@@ -1,3 +1,10 @@
 julia_depot
 **/Manifest.toml
 **/*.zip
+
+# Julia installation scripts
+juliaup.sh
+
+# Benchmark results and temporary files
+benchmark/**/*.txt
+benchmark/results/
