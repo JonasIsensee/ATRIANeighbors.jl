@@ -66,7 +66,7 @@ log "First 10 lines:"
 head -10 juliaup.sh | tee -a "$LOGFILE"
 
 log "Step 3: Running juliaup installer"
-log_command "sh juliaup.sh -y"
+log_command "sh juliaup.sh -y --default-channel lts"
 if [ $? -ne 0 ]; then
   log_error "Juliaup installer failed"
   exit 1
