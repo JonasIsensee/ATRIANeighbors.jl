@@ -26,9 +26,9 @@ export tree_depth, count_nodes, average_terminal_size, print_tree_stats
 # MinHeap for efficient priority queue operations
 include("minheap.jl")
 
-# Legacy search (kept for testing/reference)
+# Range search and count range
 include("search.jl")
-export knn_legacy, range_search, count_range
+export range_search, count_range
 
 # Main search implementation (allocation-optimized)
 include("search_optimized.jl")
