@@ -4,7 +4,9 @@ This directory contains scripts for profiling the ATRIANeighbors package using r
 
 ## Setup
 
-This directory uses Julia's development environment to depend on the local version of `ATRIANeighbors` (from the parent directory).
+This directory uses Julia's development environment to depend on local versions of:
+- `ATRIANeighbors` (from the parent directory)
+- `ProfilingAnalysis.jl` (from `../ProfilingAnalysis.jl`)
 
 To set up the environment:
 
@@ -16,7 +18,7 @@ export PATH="$HOME/.juliaup/bin:$PATH"
 julia +1.10 --project=profiling -e 'using Pkg; Pkg.instantiate()'
 ```
 
-Changes to ATRIANeighbors are immediately reflected when running profiling scripts.
+Changes to ATRIANeighbors or ProfilingAnalysis.jl are immediately reflected when running profiling scripts.
 
 ## Running Profiling Scripts
 
@@ -64,6 +66,9 @@ Additional profiling utilities:
 ```bash
 # Intensive profiling with larger datasets
 julia +1.10 --project=profiling profiling/profile_intensive.jl
+
+# Analyze existing profiling results
+julia +1.10 --project=profiling profiling/profile_analyzer.jl
 
 # Test profiling scalability
 julia +1.10 --project=profiling profiling/test_profile_scalability.jl
