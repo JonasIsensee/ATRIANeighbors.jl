@@ -30,6 +30,10 @@ include("minheap.jl")
 include("search.jl")
 export knn, range_search, count_range
 
+# Optimized search (allocation-free)
+include("search_optimized.jl")
+export knn_optimized, SearchContext
+
 # Brute force reference implementation
 include("brute.jl")
 export brute_knn, brute_knn_batch, brute_range_search, brute_count_range
