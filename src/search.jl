@@ -1,7 +1,7 @@
 # ATRIA nearest neighbor search algorithms
 
 """
-    knn(tree::ATRIATree, query_point; k::Int=1, epsilon::Float64=0.0, exclude_range::Tuple{Int,Int}=(-1,-1))
+    knn(tree::ATRIATree, query_point; k::Int=1, epsilon::Float64=0.0, exclude_range::Tuple{Int,Int}=(-1,-1), track_stats::Bool=false)
 
 Search for k nearest neighbors using the ATRIA tree.
 
@@ -11,26 +11,41 @@ Search for k nearest neighbors using the ATRIA tree.
 - `k::Int`: Number of nearest neighbors to find (default: 1)
 - `epsilon::Float64`: Approximation parameter (0.0 = exact search, >0.0 = approximate)
 - `exclude_range::Tuple{Int,Int}`: Exclude points in range [first, last] from results (for leave-one-out)
+- `track_stats::Bool`: If true, return (neighbors, stats) with distance calculation counts
 
 # Returns
-- Vector of `Neighbor` objects sorted by distance (closest first)
+- If `track_stats=false`: Vector of `Neighbor` objects sorted by distance (closest first)
+- If `track_stats=true`: Tuple of (neighbors, stats) where stats is a NamedTuple with:
+  - `distance_calcs::Int`: Number of distance calculations performed
+  - `f_k::Float64`: Fraction of distance calculations (distance_calcs / N)
 """
-function knn(tree::ATRIATree, query_point; k::Int=1, epsilon::Float64=0.0, exclude_range::Tuple{Int,Int}=(-1,-1))
+function knn(tree::ATRIATree, query_point; k::Int=1, epsilon::Float64=0.0, exclude_range::Tuple{Int,Int}=(-1,-1), track_stats::Bool=false)
     # Initialize sorted neighbor table
     table = SortedNeighborTable(k)
     init_search!(table, k)
 
     # Perform the search
-    _search_knn!(tree, query_point, table, epsilon, exclude_range)
+    distance_calcs = _search_knn!(tree, query_point, table, epsilon, exclude_range)
 
     # Return sorted results
-    return finish_search(table)
+    neighbors = finish_search(table)
+
+    if track_stats
+        N, _ = size(tree.points)
+        f_k = distance_calcs / N
+        stats = (distance_calcs=distance_calcs, f_k=f_k)
+        return (neighbors, stats)
+    else
+        return neighbors
+    end
 end
 
 """
     _search_knn!(tree::ATRIATree, query_point, table::SortedNeighborTable, epsilon::Float64, exclude_range::Tuple{Int,Int})
 
 Internal function implementing ATRIA k-NN search using best-first strategy with priority queue.
+
+Returns the number of distance calculations performed.
 """
 function _search_knn!(tree::ATRIATree, query_point, table::SortedNeighborTable, epsilon::Float64, exclude_range::Tuple{Int,Int})
     first, last = exclude_range
@@ -38,8 +53,12 @@ function _search_knn!(tree::ATRIATree, query_point, table::SortedNeighborTable, 
     # Create MinHeap for best-first search (min-heap by d_min)
     pq = MinHeap{SearchItem}()
 
+    # Track distance calculations
+    distance_calcs = 0
+
     # Calculate distance to root center
     root_dist = distance(tree.points, tree.root.center, query_point)
+    distance_calcs += 1
 
     # Push root onto queue
     root_si = SearchItem(tree.root, root_dist)
@@ -59,23 +78,28 @@ function _search_knn!(tree::ATRIATree, query_point, table::SortedNeighborTable, 
         if table.high_dist >= si.d_min * (1.0 + epsilon)
             if is_terminal(c)
                 # Terminal node: test points using permutation table
-                _search_terminal_node!(tree, c, si, query_point, table, first, last)
+                distance_calcs += _search_terminal_node!(tree, c, si, query_point, table, first, last)
             else
                 # Internal node: push children onto queue
-                _push_child_clusters!(tree, c, si, query_point, pq)
+                distance_calcs += _push_child_clusters!(tree, c, si, query_point, pq)
             end
         end
     end
+
+    return distance_calcs
 end
 
 """
     _search_terminal_node!(tree, cluster, si, query_point, table, first, last)
 
 Search within a terminal cluster node.
+
+Returns the number of distance calculations performed.
 """
 @inline function _search_terminal_node!(tree::ATRIATree, c::Cluster, si::SearchItem, query_point, table::SortedNeighborTable, first::Int, last::Int)
     section_start = c.start
     section_end = c.start + c.length - 1
+    distance_calcs = 0
 
     # Get cluster radius (note: Rmax is negative for terminal nodes)
     Rmax = abs(c.Rmax)
@@ -83,6 +107,7 @@ Search within a terminal cluster node.
     if Rmax == 0.0
         # Special case: all points at same location as center
         # Distances are pre-computed in permutation table
+        # No additional distance calculations needed
         @inbounds for i in section_start:section_end
             neighbor = tree.permutation_table[i]
             j = neighbor.index
@@ -105,24 +130,25 @@ Search within a terminal cluster node.
             if j < first || j > last
                 # Triangle inequality pruning
                 lower_bound = abs(si.dist - neighbor.distance)
-                current_high = table.high_dist
-                if current_high > lower_bound
-                    # Actually compute distance with early termination
-                    # Use current high_dist as threshold for early stopping
-                    d = distance(tree.points, j, query_point, current_high)
-                    if d < current_high
-                        insert!(table, Neighbor(j, d))
-                    end
+                if table.high_dist > lower_bound
+                    # Actually compute distance
+                    d = distance(tree.points, j, query_point)
+                    distance_calcs += 1
+                    insert!(table, Neighbor(j, d))
                 end
             end
         end
     end
+
+    return distance_calcs
 end
 
 """
     _push_child_clusters!(tree, cluster, parent_si, query_point, pq)
 
 Push child clusters onto MinHeap for k-NN search.
+
+Returns the number of distance calculations performed (always 2 - one per child).
 """
 @inline function _push_child_clusters!(tree::ATRIATree, c::Cluster, parent_si::SearchItem, query_point, pq::MinHeap{SearchItem})
     # Compute distances to child centers
@@ -136,6 +162,8 @@ Push child clusters onto MinHeap for k-NN search.
     # Push onto MinHeap (will be ordered by d_min)
     push!(pq, si_left)
     push!(pq, si_right)
+
+    return 2  # Two distance calculations
 end
 
 """
