@@ -2,6 +2,12 @@
 
 # Julia installation script with comprehensive logging
 # Log files will be created in /tmp for debugging
+#
+# This script is designed to run as a SessionStart hook in Claude Code.
+# It uses CLAUDE_ENV_FILE (available only in SessionStart hooks) to persist
+# the PATH modification across all bash commands in the session.
+#
+# See: https://code.claude.com/docs/en/hooks#sessionstart
 
 LOGDIR="/tmp/julia_install_logs"
 LOGFILE="${LOGDIR}/install_$(date +%Y%m%d_%H%M%S).log"
@@ -119,9 +125,37 @@ fi
 log "Step 14: Adding to PATH"
 if [ -n "$CLAUDE_ENV_FILE" ]; then
   log "Adding to CLAUDE_ENV_FILE: $CLAUDE_ENV_FILE"
-  echo 'export PATH="$PATH:/root/.juliaup/bin"' >> "$CLAUDE_ENV_FILE"
-  log "Contents of CLAUDE_ENV_FILE:"
-  cat "$CLAUDE_ENV_FILE" | tee -a "$LOGFILE"
+
+  # Ensure the directory for CLAUDE_ENV_FILE exists
+  CLAUDE_ENV_DIR=$(dirname "$CLAUDE_ENV_FILE")
+  if [ ! -d "$CLAUDE_ENV_DIR" ]; then
+    log "Creating directory for CLAUDE_ENV_FILE: $CLAUDE_ENV_DIR"
+    mkdir -p "$CLAUDE_ENV_DIR" 2>&1 | tee -a "$LOGFILE"
+    if [ $? -ne 0 ]; then
+      log_error "Failed to create directory $CLAUDE_ENV_DIR"
+    fi
+  fi
+
+  # Touch the file to ensure it exists
+  if [ ! -f "$CLAUDE_ENV_FILE" ]; then
+    log "Creating CLAUDE_ENV_FILE: $CLAUDE_ENV_FILE"
+    touch "$CLAUDE_ENV_FILE" 2>&1 | tee -a "$LOGFILE"
+    if [ $? -ne 0 ]; then
+      log_error "Failed to create file $CLAUDE_ENV_FILE"
+    fi
+  fi
+
+  # Add Julia to PATH in CLAUDE_ENV_FILE
+  echo 'export PATH="/root/.juliaup/bin:$PATH"' >> "$CLAUDE_ENV_FILE"
+  log "Added Julia to CLAUDE_ENV_FILE"
+
+  # Show contents
+  if [ -f "$CLAUDE_ENV_FILE" ]; then
+    log "Contents of CLAUDE_ENV_FILE:"
+    cat "$CLAUDE_ENV_FILE" | tee -a "$LOGFILE"
+  else
+    log_error "CLAUDE_ENV_FILE still does not exist after creation attempt"
+  fi
 else
   log "CLAUDE_ENV_FILE not set, adding to .bashrc"
   if ! grep -q "/.juliaup/bin" "/root/.bashrc" 2>/dev/null; then
@@ -144,6 +178,18 @@ if [ -f "/root/.julia/juliaup/juliaup.json" ]; then
   cat /root/.julia/juliaup/juliaup.json | tee -a "$LOGFILE"
 else
   log_error "juliaup.json not found"
+fi
+
+log "Step 16: Verifying PATH configuration"
+if [ -n "$CLAUDE_ENV_FILE" ] && [ -f "$CLAUDE_ENV_FILE" ]; then
+  log "CLAUDE_ENV_FILE is configured and will be loaded by Claude Code"
+  log "Julia should be available in PATH for all subsequent bash commands"
+elif grep -q "/.juliaup/bin" "/root/.bashrc" 2>/dev/null; then
+  log "Julia PATH added to .bashrc"
+  log "Note: In Claude Code remote environment, you may need to manually export PATH in this session:"
+  log "  export PATH=\"/root/.juliaup/bin:\$PATH\""
+else
+  log_error "Julia PATH not configured in CLAUDE_ENV_FILE or .bashrc"
 fi
 
 log "========================================="
