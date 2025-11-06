@@ -33,6 +33,43 @@ log_command() {
   return 0
 }
 
+# Function to retry commands with exponential backoff
+retry_command() {
+  local max_attempts=3
+  local timeout=120
+  local attempt=1
+  local exitCode=0
+  local cmd="$*"
+
+  while [ $attempt -le $max_attempts ]; do
+    log "Attempt $attempt/$max_attempts: $cmd"
+
+    if timeout "$timeout" bash -c "$cmd" 2>&1 | tee -a "$LOGFILE"; then
+      log "Command succeeded on attempt $attempt"
+      return 0
+    fi
+
+    exitCode=$?
+
+    if [ $exitCode -eq 124 ]; then
+      log_error "Command timed out after ${timeout}s on attempt $attempt"
+    else
+      log_error "Command failed with exit code $exitCode on attempt $attempt"
+    fi
+
+    if [ $attempt -lt $max_attempts ]; then
+      local wait_time=$((2 ** attempt))
+      log "Waiting ${wait_time}s before retry..."
+      sleep $wait_time
+    fi
+
+    attempt=$((attempt + 1))
+  done
+
+  log_error "Command failed after $max_attempts attempts: $cmd"
+  return $exitCode
+}
+
 # Enable debug mode for detailed execution trace
 set -x
 
@@ -65,8 +102,9 @@ log "File size: $(wc -c < juliaup.sh) bytes"
 log "First 10 lines:"
 head -10 juliaup.sh | tee -a "$LOGFILE"
 
-log "Step 3: Running juliaup installer"
-log_command "sh juliaup.sh -y"
+log "Step 3: Running juliaup installer (skip default channel)"
+# Use --default-channel none to avoid auto-installing Julia 1.12
+log_command "sh juliaup.sh -y --default-channel none"
 if [ $? -ne 0 ]; then
   log_error "Juliaup installer failed"
   exit 1
@@ -81,58 +119,110 @@ else
   exit 1
 fi
 
-log "Step 6: Adding Julia 1.11"
-log_command "/root/.juliaup/bin/juliaup add 1.11"
+log "Step 5: Remove any auto-installed versions"
+if /root/.juliaup/bin/juliaup status | grep -q "1.12"; then
+  log "Removing Julia 1.12"
+  log_command "/root/.juliaup/bin/juliaup remove 1.12" || log "1.12 removal failed or not needed"
+fi
 
-log "Step 7: Adding Julia 1.10"
-log_command "/root/.juliaup/bin/juliaup add 1.10"
+log "Step 6: Adding Julia 1.10 (with retry)"
+if ! retry_command "/root/.juliaup/bin/juliaup add 1.10"; then
+  log_error "Failed to add Julia 1.10 after retries"
+  exit 1
+fi
 
-log "Step 8: Setting default Julia version to 1.10"
+log "Step 7: Verifying Julia 1.10 installation"
+if /root/.juliaup/bin/juliaup status | grep -q "1.10"; then
+  log "Julia 1.10 successfully installed"
+else
+  log_error "Julia 1.10 not found in juliaup status"
+  exit 1
+fi
+
+log "Step 8: Adding Julia 1.11 (with retry)"
+if ! retry_command "/root/.juliaup/bin/juliaup add 1.11"; then
+  log_error "Failed to add Julia 1.11 after retries"
+  exit 1
+fi
+
+log "Step 9: Verifying Julia 1.11 installation"
+if /root/.juliaup/bin/juliaup status | grep -q "1.11"; then
+  log "Julia 1.11 successfully installed"
+else
+  log_error "Julia 1.11 not found in juliaup status"
+  exit 1
+fi
+
+log "Step 10: Setting default Julia version to 1.10"
 log_command "/root/.juliaup/bin/juliaup default 1.10"
+if [ $? -ne 0 ]; then
+  log_error "Failed to set default Julia version"
+  exit 1
+fi
 
-log "Step 9: Enabling channel symlinks"
+log "Step 11: Enabling channel symlinks"
 log_command "/root/.juliaup/bin/juliaup config channelsymlinks true"
 
-log "Step 10: Checking juliaup status"
+log "Step 12: Checking juliaup status"
 log_command "/root/.juliaup/bin/juliaup status"
 
-log "Step 11: Checking for julia symlink"
+log "Step 13: Checking for julia symlink"
 if [ ! -e "/root/.juliaup/bin/julia" ]; then
   log "julia symlink not found, creating workaround symlink"
   # Workaround: juliaup sometimes fails to create the julia symlink
   # See: https://github.com/JuliaLang/juliaup/issues/574
-  log_command "ln -s julialauncher /root/.juliaup/bin/julia"
+  log_command "cd /root/.juliaup/bin && ln -sf julialauncher julia && cd -"
 else
   log "julia symlink already exists"
 fi
 
-log "Step 12: Verifying julia executable"
+log "Step 14: Verifying julia executable"
 log_command "ls -lh /root/.juliaup/bin/julia*"
 
-log "Step 13: Testing julia execution"
+log "Step 15: Testing julia execution"
 if [ -e "/root/.juliaup/bin/julia" ]; then
-  log_command "/root/.juliaup/bin/julia --version"
+  if ! retry_command "/root/.juliaup/bin/julia --version"; then
+    log_error "Julia execution test failed after retries"
+    exit 1
+  fi
 else
   log_error "julia executable still not found after symlink creation"
+  exit 1
 fi
 
-log "Step 14: Adding to PATH"
-if [ -n "$CLAUDE_ENV_FILE" ]; then
-  log "Adding to CLAUDE_ENV_FILE: $CLAUDE_ENV_FILE"
-  echo 'export PATH="$PATH:/root/.juliaup/bin"' >> "$CLAUDE_ENV_FILE"
-  log "Contents of CLAUDE_ENV_FILE:"
-  cat "$CLAUDE_ENV_FILE" | tee -a "$LOGFILE"
+log "Step 16: Adding to PATH"
+# First check if .bashrc has the juliaup path (juliaup installer should have added it)
+if grep -q "/.juliaup/bin" "/root/.bashrc" 2>/dev/null; then
+  log ".bashrc already contains juliaup path from installer"
 else
-  log "CLAUDE_ENV_FILE not set, adding to .bashrc"
-  if ! grep -q "/.juliaup/bin" "/root/.bashrc" 2>/dev/null; then
-    echo 'export PATH="$PATH:/root/.juliaup/bin"' >> "$HOME/.bashrc"
-    log "Added to .bashrc"
-  else
-    log ".bashrc already contains juliaup path"
-  fi
+  log ".bashrc missing juliaup path, adding manually"
+  echo 'export PATH="/root/.juliaup/bin:$PATH"' >> "$HOME/.bashrc"
 fi
 
-log "Step 15: Final verification"
+# Also add to CLAUDE_ENV_FILE if it exists and is writable
+if [ -n "$CLAUDE_ENV_FILE" ]; then
+  # Create parent directory if needed
+  CLAUDE_ENV_DIR=$(dirname "$CLAUDE_ENV_FILE")
+  if [ ! -d "$CLAUDE_ENV_DIR" ]; then
+    log "Creating CLAUDE_ENV_FILE directory: $CLAUDE_ENV_DIR"
+    mkdir -p "$CLAUDE_ENV_DIR" || log_error "Failed to create CLAUDE_ENV_FILE directory"
+  fi
+
+  if [ -d "$CLAUDE_ENV_DIR" ]; then
+    log "Adding to CLAUDE_ENV_FILE: $CLAUDE_ENV_FILE"
+    echo 'export PATH="/root/.juliaup/bin:$PATH"' >> "$CLAUDE_ENV_FILE" 2>/dev/null && \
+      log "Successfully wrote to CLAUDE_ENV_FILE" || \
+      log_error "Failed to write to CLAUDE_ENV_FILE (may not be writable)"
+  fi
+else
+  log "CLAUDE_ENV_FILE not set, skipping"
+fi
+
+# Export PATH for current session
+export PATH="/root/.juliaup/bin:$PATH"
+log "Exported PATH for current session: $PATH"
+
+log "Step 17: Final verification"
 log "Directory listing of /root/.juliaup/bin/:"
 ls -lha /root/.juliaup/bin/ | tee -a "$LOGFILE"
 
@@ -146,12 +236,38 @@ else
   log_error "juliaup.json not found"
 fi
 
+log "Step 18: Final working test"
+log "Testing julia, juliaup, and julialauncher commands:"
+if command -v julia &> /dev/null; then
+  log "✓ julia command is available in PATH"
+  julia --version | tee -a "$LOGFILE" || log_error "julia --version failed"
+else
+  log_error "✗ julia command not found in PATH"
+fi
+
+if command -v juliaup &> /dev/null; then
+  log "✓ juliaup command is available in PATH"
+  juliaup --version | tee -a "$LOGFILE" || log_error "juliaup --version failed"
+else
+  log_error "✗ juliaup command not found in PATH"
+fi
+
+if command -v julialauncher &> /dev/null; then
+  log "✓ julialauncher command is available in PATH"
+else
+  log_error "✗ julialauncher command not found in PATH"
+fi
+
 log "========================================="
 log "Julia Installation Script Completed"
 log "========================================="
 log "Check logs at:"
 log "  Main log: $LOGFILE"
 log "  Error log: $ERRORLOG"
+log ""
+log "To use Julia in your current shell, run:"
+log "  export PATH=\"/root/.juliaup/bin:\$PATH\""
+log "Or start a new shell session."
 
 # Disable debug mode
 set +x
