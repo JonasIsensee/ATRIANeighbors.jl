@@ -178,7 +178,7 @@ function workload_range_search(tree::ATRIATree, ps::AbstractPointSet, n_queries:
     for _ in 1:n_queries
         query_idx = rand(rng, 1:N)
         query = getpoint(ps, query_idx)
-        range_search(tree, query, radius)
+        range_search(tree, query, radius=radius)
     end
 end
 
@@ -192,7 +192,7 @@ function workload_count_range(tree::ATRIATree, ps::AbstractPointSet, n_queries::
     for _ in 1:n_queries
         query_idx = rand(rng, 1:N)
         query = getpoint(ps, query_idx)
-        count_range(tree, query, radius)
+        count_range(tree, query, radius=radius)
     end
 end
 
