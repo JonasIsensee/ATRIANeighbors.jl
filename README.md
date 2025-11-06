@@ -32,6 +32,31 @@ Performance on clustered data (N=10,000 points, D=20, k=10 neighbors, 100 querie
 
 **ATRIA is 1.4-3x faster than KDTree** for typical chaotic attractor and time series data.
 
+#### Reproducing the Benchmark
+
+The clustered test data is generated as:
+
+```julia
+# Generate N points in D dimensions with n_clusters Gaussian clusters
+function generate_clustered_data(N, D, n_clusters=10)
+    centers = randn(n_clusters, D) .* 10.0  # Random cluster centers
+    points = zeros(N, D)
+    for i in 1:N
+        cluster_idx = rand(1:n_clusters)
+        points[i, :] = centers[cluster_idx, :] .+ randn(D)  # Point near center
+    end
+    return points
+end
+```
+
+Run the complete benchmark to reproduce this table:
+
+```bash
+julia --project=. benchmark/readme_benchmark.jl
+```
+
+See [`benchmark/readme_benchmark.jl`](benchmark/readme_benchmark.jl) for the full comparison script including all algorithms and timing methodology.
+
 ### Scaling with Fractal Dimension
 
 The algorithm's efficiency depends primarily on the fractal/information dimension D₁ of the data:
