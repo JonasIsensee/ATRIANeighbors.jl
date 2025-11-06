@@ -1,6 +1,6 @@
 # ATRIANeighbors.jl Benchmark Suite
 
-This directory contains a comprehensive benchmarking suite for evaluating ATRIANeighbors.jl performance against reference implementations, particularly NearestNeighbors.jl.
+This directory contains a comprehensive benchmarking suite for evaluating ATRIANeighbors.jl performance against multiple nearest neighbor search libraries.
 
 ## Overview
 
@@ -9,9 +9,19 @@ The benchmark suite evaluates ATRIA performance on datasets it's designed to exc
 - **High-dimensional data** (D > 10)
 - **Non-uniformly distributed data** (clustered, manifold-like structures)
 
+## Libraries Compared
+
+- **ATRIANeighbors.jl** (this package) - ATRIA algorithm optimized for chaotic time series
+- **NearestNeighbors.jl** - KDTree, BallTree, and BruteTree implementations
+- **HNSW.jl** - Hierarchical Navigable Small World graphs (optional)
+
 ## Files
 
-- **`run_benchmarks.jl`**: Main benchmark orchestration script
+### Core Benchmark Scripts
+- **`library_comparison.jl`**: Comprehensive library comparison framework (NEW!)
+- **`run_full_comparison.jl`**: Main entry point for full library benchmarks (NEW!)
+- **`test_library_comparison.jl`**: Quick test of library comparison (NEW!)
+- **`run_benchmarks.jl`**: Original ATRIA benchmark orchestration script
 - **`data_generators.jl`**: Dataset generation (attractors, clusters, manifolds, etc.)
 - **`cache.jl`**: Result caching system using JLD2
 - **`plotting.jl`**: Visualization utilities for benchmark results
@@ -21,19 +31,74 @@ The benchmark suite evaluates ATRIA performance on datasets it's designed to exc
 
 ### Installation
 
-This directory uses Julia 1.12's **workspace feature** to depend on the local version of `ATRIANeighbors` from the parent directory. Changes to ATRIANeighbors are immediately reflected when running benchmarks without needing to reinstall or develop the package.
+This benchmark suite uses **Julia 1.10** and depends on the local version of `ATRIANeighbors` from the parent directory.
 
-First, instantiate the benchmark environment:
+First, ensure Julia 1.10 is installed and set as default:
+
+```bash
+~/.juliaup/bin/juliaup add 1.10
+~/.juliaup/bin/juliaup default 1.10
+```
+
+Then instantiate the benchmark environment:
 
 ```bash
 cd benchmark
-export PATH="$HOME/.juliaup/bin:$PATH"
-julia --project=. -e 'using Pkg; Pkg.instantiate()'
+~/.juliaup/bin/julialauncher --project=. -e 'using Pkg; Pkg.instantiate()'
 ```
 
-This installs all benchmark-specific dependencies (BenchmarkTools, NearestNeighbors, JLD2, Plots).
+This installs all benchmark-specific dependencies (BenchmarkTools, NearestNeighbors, HNSW, JLD2, Plots, DynamicalSystems).
 
-### Running Benchmarks
+## Library Comparison Benchmarks (NEW!)
+
+### Quick Test (2-5 minutes)
+
+Test the library comparison framework:
+
+```bash
+~/.juliaup/bin/julialauncher --project=. test_library_comparison.jl
+```
+
+### Full Library Comparison
+
+Run comprehensive benchmarks comparing all libraries:
+
+```bash
+# Standard mode (15-30 minutes)
+~/.juliaup/bin/julialauncher --project=. run_full_comparison.jl
+
+# Quick mode (2-5 minutes)
+BENCHMARK_MODE=quick ~/.juliaup/bin/julialauncher --project=. run_full_comparison.jl
+
+# Comprehensive mode (1-2 hours)
+BENCHMARK_MODE=comprehensive ~/.juliaup/bin/julialauncher --project=. run_full_comparison.jl
+```
+
+Or from Julia REPL:
+
+```julia
+include("benchmark/run_full_comparison.jl")
+
+# Quick mode
+results, report = run_full_benchmark(mode=:quick)
+
+# Standard mode
+results, report = run_full_benchmark(mode=:standard)
+
+# Comprehensive mode
+results, report = run_full_benchmark(mode=:comprehensive)
+```
+
+### Output
+
+The library comparison generates:
+- **Markdown report** (`BENCHMARK_REPORT.md`) with comparative analysis
+- **PNG plots** comparing performance across all libraries
+- **Detailed results table** with all metrics
+
+Reports are saved to `benchmark/results/library_comparison_*/`
+
+### Running Benchmarks (Original ATRIA-only)
 
 #### Quick Benchmark (Smoke Test)
 
