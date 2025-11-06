@@ -7,7 +7,7 @@ Usage:
     julia --project=. benchmark/readme_benchmark.jl
 
 This benchmark compares ATRIA against KDTree, BallTree, and brute force search
-on clustered data (N=10,000 points, D=20 dimensions, k=10 neighbors).
+on Lorenz attractor data (N=50,000 points, D=3, k=10 neighbors).
 """
 
 using Pkg
@@ -19,16 +19,30 @@ using BenchmarkTools
 using Random
 using Printf
 
-function generate_clustered_data(N, D, n_clusters=10; rng=Random.GLOBAL_RNG)
-    # Generate cluster centers
-    centers = randn(rng, n_clusters, D) .* 10.0
+function generate_lorenz(N; σ=10.0, ρ=28.0, β=8/3, dt=0.01, transient=1000)
+    # Initial condition
+    x, y, z = 1.0, 1.0, 1.0
 
-    # Assign points to clusters
-    points = zeros(N, D)
+    # Skip transient
+    for _ in 1:transient
+        dx = σ * (y - x)
+        dy = x * (ρ - z) - y
+        dz = x * y - β * z
+        x += dt * dx
+        y += dt * dy
+        z += dt * dz
+    end
+
+    # Generate points
+    points = zeros(N, 3)
     for i in 1:N
-        cluster_idx = rand(rng, 1:n_clusters)
-        center = centers[cluster_idx, :]
-        points[i, :] = center .+ randn(rng, D)
+        points[i, :] = [x, y, z]
+        dx = σ * (y - x)
+        dy = x * (ρ - z) - y
+        dz = x * y - β * z
+        x += dt * dx
+        y += dt * dy
+        z += dt * dz
     end
 
     return points
@@ -41,24 +55,23 @@ function run_readme_benchmark()
     println()
 
     # Configuration
-    N = 10_000
-    D = 20
+    N = 50_000
+    D = 3
     k = 10
     n_queries = 100
-    n_clusters = 10
 
     println("Configuration:")
     println("  Dataset size:    N = $N points")
     println("  Dimensions:      D = $D")
     println("  Neighbors:       k = $k")
     println("  Queries:         $n_queries")
-    println("  Data type:       Clustered ($n_clusters Gaussian clusters)")
+    println("  Data type:       Lorenz attractor (fractal dimension ≈ 2.06)")
     println()
 
     # Generate data
-    println("Generating data...")
+    println("Generating Lorenz attractor data...")
     rng = MersenneTwister(42)
-    data = generate_clustered_data(N, D, n_clusters, rng=rng)
+    data = generate_lorenz(N)
 
     # Generate query points (from dataset with small noise)
     query_indices = rand(rng, 1:N, n_queries)
