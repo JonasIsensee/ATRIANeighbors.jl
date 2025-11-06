@@ -2,20 +2,20 @@
 # (k-NN search is in search_optimized.jl)
 
 """
-    range_search(tree::ATRIATree, query_point, radius::Float64; exclude_range::Tuple{Int,Int}=(-1,-1))
+    range_search(tree::ATRIATree, query_point; radius::Float64, exclude_range::Tuple{Int,Int}=(-1,-1))
 
 Search for all neighbors within distance `radius` using the ATRIA tree.
 
 # Arguments
 - `tree::ATRIATree`: The ATRIA tree to search
 - `query_point`: The query point
-- `radius::Float64`: Search radius
+- `radius::Float64`: Search radius (keyword argument)
 - `exclude_range::Tuple{Int,Int}`: Exclude points in range [first, last] from results
 
 # Returns
 - Vector of `Neighbor` objects within radius (unsorted)
 """
-function range_search(tree::ATRIATree, query_point, radius::Float64; exclude_range::Tuple{Int,Int}=(-1,-1))
+function range_search(tree::ATRIATree, query_point; radius::Float64, exclude_range::Tuple{Int,Int}=(-1,-1))
     first, last = exclude_range
     results = Neighbor[]
 
@@ -113,20 +113,20 @@ Push child clusters onto stack for range search.
 end
 
 """
-    count_range(tree::ATRIATree, query_point, radius::Float64; exclude_range::Tuple{Int,Int}=(-1,-1))
+    count_range(tree::ATRIATree, query_point; radius::Float64, exclude_range::Tuple{Int,Int}=(-1,-1))
 
 Count how many neighbors are within distance `radius` (correlation sum).
 
 # Arguments
 - `tree::ATRIATree`: The ATRIA tree to search
 - `query_point`: The query point
-- `radius::Float64`: Search radius
+- `radius::Float64`: Search radius (keyword argument)
 - `exclude_range::Tuple{Int,Int}`: Exclude points in range [first, last] from count
 
 # Returns
 - Integer count of neighbors within radius
 """
-function count_range(tree::ATRIATree, query_point, radius::Float64; exclude_range::Tuple{Int,Int}=(-1,-1))
+function count_range(tree::ATRIATree, query_point; radius::Float64, exclude_range::Tuple{Int,Int}=(-1,-1))
     first, last = exclude_range
     count = 0
 

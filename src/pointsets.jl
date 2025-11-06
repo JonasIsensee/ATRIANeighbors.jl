@@ -229,9 +229,17 @@ struct EmbeddedTimeSeries{T,M<:Metric} <: AbstractPointSet{T,Nothing,M}
     end
 end
 
-# Convenience constructor with default Euclidean metric
+# Convenience constructor with default Euclidean metric (positional args)
 function EmbeddedTimeSeries(data::Vector{T}, dim::Int, delay::Int=1) where {T}
     EmbeddedTimeSeries(data, dim, delay, EuclideanMetric())
+end
+
+# Keyword argument constructor for clarity
+function EmbeddedTimeSeries(data::Vector{T};
+                            dim::Int,
+                            delay::Int=1,
+                            metric::Metric=EuclideanMetric()) where {T}
+    EmbeddedTimeSeries(data, dim, delay, metric)
 end
 
 """

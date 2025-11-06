@@ -135,7 +135,7 @@ end
         query = rand(2)
         radius = 0.3
 
-        atria_results = range_search(tree, query, radius)
+        atria_results = range_search(tree, query, radius=radius)
         brute_results = brute_range_search(ps, query, radius)
 
         @test length(atria_results) == length(brute_results)
@@ -164,7 +164,7 @@ end
     query = rand(3)
     radius = 0.5
 
-    atria_count = count_range(tree, query, radius)
+    atria_count = count_range(tree, query, radius=radius)
     brute_count = brute_count_range(ps, query, radius)
 
     @test atria_count == brute_count

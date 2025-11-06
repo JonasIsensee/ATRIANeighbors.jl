@@ -123,8 +123,7 @@ results = [knn(tree, queries[i,:], k=10, ctx=ctx) for i in 1:1000]
 ```julia
 # Time-delay embedding (memory efficient)
 signal = randn(50000)
-ps = EmbeddedTimeSeries(signal, EuclideanMetric(),
-                        embedding_dim=7, delay=5)
+ps = EmbeddedTimeSeries(signal, dim=7, delay=5)
 tree = ATRIA(ps, min_points=64)
 
 # Find neighbors in embedded space
@@ -135,7 +134,10 @@ indices, dists = knn(tree, 1000, k=10)  # neighbors of point 1000
 
 ```julia
 # Find all neighbors within radius
-indices, distances = range_search(tree, query, radius=0.5)
+neighbors = range_search(tree, query, radius=0.5)
+# Extract indices and distances from Neighbor objects
+indices = [n.index for n in neighbors]
+distances = [n.dist for n in neighbors]
 
 # Count neighbors (faster than range search)
 count = count_range(tree, query, radius=0.5)
@@ -148,9 +150,8 @@ count = count_range(tree, query, radius=0.5)
 ps = PointSet(data, MaximumMetric())
 tree = ATRIA(ps)
 
-# Custom weighted metric
-weights = [1.0, 2.0, 1.5, ...]
-ps = PointSet(data, ExponentiallyWeightedEuclidean(weights))
+# Exponentially weighted Euclidean (decay factor 0 < λ ≤ 1)
+ps = PointSet(data, ExponentiallyWeightedEuclidean(0.9))
 tree = ATRIA(ps)
 ```
 
@@ -185,20 +186,20 @@ During search, a priority queue enables best-first traversal:
 ## API Reference
 
 ### Tree Construction
-- `ATRIA(ps, min_points=64)` - Build tree from point set
+- `ATRIA(ps; min_points=64)` - Build tree from point set
 - `PointSet(data, metric)` - Standard point set from matrix
-- `EmbeddedTimeSeries(signal, metric, embedding_dim, delay)` - Time-delay embedding
+- `EmbeddedTimeSeries(signal; dim, delay=1, metric=EuclideanMetric())` - Time-delay embedding
 
 ### Search
 - `knn(tree, query; k=10, ctx=nothing)` - Find k nearest neighbors
 - `knn_batch(tree, queries, k)` - Batch search
-- `range_search(tree, query, radius)` - All neighbors within radius
-- `count_range(tree, query, radius)` - Count neighbors within radius
+- `range_search(tree, query; radius)` - All neighbors within radius
+- `count_range(tree, query; radius)` - Count neighbors within radius
 
 ### Metrics
 - `EuclideanMetric()` - L₂ distance
 - `MaximumMetric()` - L∞ (Chebyshev) distance
-- `ExponentiallyWeightedEuclidean(weights)` - Weighted L₂
+- `ExponentiallyWeightedEuclidean(lambda)` - Exponentially weighted L₂ (decay factor 0 < λ ≤ 1)
 - `SquaredEuclidean()` - For brute force only (violates triangle inequality)
 
 ## Contributing

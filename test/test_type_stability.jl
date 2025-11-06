@@ -108,8 +108,8 @@ println()
 
 check_type_stability(ATRIANeighbors.knn, tree, query; name="knn(ATRIATree, Vector)")
 check_type_stability(ATRIANeighbors.knn, tree, query, k=10; name="knn(ATRIATree, Vector, k=10)")
-check_type_stability(range_search, tree, query, 1.0; name="range_search(ATRIATree, Vector, Float64)")
-check_type_stability(count_range, tree, query, 1.0; name="count_range(ATRIATree, Vector, Float64)")
+check_type_stability(range_search, tree, query; radius=1.0, name="range_search(ATRIATree, Vector, radius=Float64)")
+check_type_stability(count_range, tree, query; radius=1.0, name="count_range(ATRIATree, Vector, radius=Float64)")
 
 println("=" ^ 80)
 println("DATA STRUCTURES")
