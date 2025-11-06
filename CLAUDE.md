@@ -4,7 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Julia implementation of the **ATRIA (Advanced TRiangle Inequality Algorithm)** for efficient nearest neighbor search, particularly optimized for high-dimensional spaces with unevenly distributed points. The implementation is based on a C++ reference implementation (in `materials/`) and aims to match or exceed its performance.
+This is a Julia implementation of the **ATRIA (Advanced TRiangle Inequality Algorithm)** for efficient nearest neighbor search in **time series** and **dynamical systems**. ATRIA is specifically designed for data with **low intrinsic dimensionality** (e.g., chaotic attractors, recurrence structures) embedded in high-dimensional observation spaces. The implementation is based on a C++ reference implementation (in `materials/`) and aims to match or exceed its performance.
+
+**Use ATRIA for:**
+- Time series analysis with delay embeddings
+- Chaotic dynamical systems and attractors
+- Nonlinear dynamics and recurrence analysis
+- Data with strong local structure/clustering
+
+**Use other algorithms for:**
+- General spatial data → [NearestNeighbors.jl](https://github.com/KristofferC/NearestNeighbors.jl)
+- Approximate high-D search → [HNSW.jl](https://github.com/JuliaNeighbors/HNSW.jl)
+- Small datasets (N < 10k) → Brute force is fine
 
 ## Build and Test Commands
 
@@ -52,12 +63,20 @@ include("src/ATRIANeighbors.jl")
 
 ### Performance Benchmarking
 ```bash
-# Run performance tests (when implemented in test/test_performance.jl)
-julia --project=. test/test_performance.jl
+# Demonstrate data-dependent performance (IMPORTANT!)
+julia --project=. benchmark/benchmark_data_distributions.jl
 
-# Profile specific functions
-julia --project=. -e 'using Profile; include("benchmark/profile_tree.jl")'
+# Comprehensive bottleneck analysis
+julia --project=. benchmark/analyze_bottlenecks.jl
+
+# Profile allocations
+julia --project=. benchmark/profile_allocations.jl
+
+# Compare with other algorithms
+julia --project=. benchmark/library_comparison.jl
 ```
+
+**Key benchmark:** `benchmark_data_distributions.jl` demonstrates ATRIA's core characteristic - excellent performance on clustered/manifold data (3.6x faster), poor on random data (2x slower).
 
 ## Architecture Overview
 
@@ -110,8 +129,14 @@ ATRIA builds a binary tree for efficient nearest neighbor search using triangle 
 - **`src/metrics.jl`**: Distance functions (Euclidean, Maximum, SquaredEuclidean, ExponentiallyWeighted)
 - **`src/pointsets.jl`**: Point set abstractions (PointSet for matrices, EmbeddedTimeSeries for time series)
 - **`src/tree.jl`**: Tree construction algorithm
-- **`src/search.jl`**: Search algorithms (NOT YET IMPLEMENTED - planned)
-- **`src/brute.jl`**: Brute force reference (NOT YET IMPLEMENTED - planned)
+- **`src/minheap.jl`**: Custom array-based min-heap for priority queue (faster than DataStructures.jl)
+- **`src/search_optimized.jl`**: Near-allocation-free k-NN search with object pooling (2 allocations/224 bytes per query with context reuse)
+- **`src/search.jl`**: Range search and count_range algorithms (depth-first traversal for radius queries)
+- **`src/brute.jl`**: Brute force reference implementations for validation
+
+**Note on Search Implementation**: The k-NN search is split into two implementations:
+- `search_optimized.jl` contains the production implementation with zero allocations during search via `SearchContext` object pooling
+- `search.jl` focuses on range-based queries (range_search, count_range) which use simpler stack-based traversal
 
 ### Distance Metrics
 
@@ -133,23 +158,65 @@ All point sets expose:
 
 ## Implementation Status
 
-### Completed (Phase 1-2):
+### ✅ Completed (Core Implementation):
 - ✅ Core data structures (Neighbor, Cluster, SearchItem, SortedNeighborTable)
-- ✅ Distance metrics with partial calculation
+- ✅ Distance metrics with partial calculation and early termination
 - ✅ Point set abstractions (PointSet, EmbeddedTimeSeries)
-- ✅ Tree construction algorithm
+- ✅ Tree construction algorithm with optimized partitioning
 - ✅ Tree inspection utilities
+- ✅ **Near-allocation-free k-NN search** with object pooling (224 bytes/query with context reuse)
+- ✅ **Range search** and **count_range** (correlation sum) algorithms
+- ✅ **Brute force reference** implementations (for validation and small datasets)
+- ✅ **High-level API**: `knn()`, `knn_batch()`, `range_search()`, `count_range()`
+- ✅ Custom MinHeap implementation
+- ✅ Comprehensive test suite with correctness validation
 
-### Not Yet Implemented (Phase 3+):
-- ❌ k-NN search (`src/search.jl`)
-- ❌ Range search
-- ❌ Count range / correlation sum
-- ❌ Brute force reference (`src/brute.jl`)
-- ❌ High-level API (`knn()`, `range_search()`, etc.)
-- ❌ Performance optimizations (SIMD, memory layout)
-- ❌ Advanced features (serialization, parallel queries)
+**Performance Note:** ATRIA is designed for **low-dimensional structure in high-dimensional space**:
+- **Intended use**: Time series embeddings, dynamical systems, chaotic attractors (2-3x faster with 90%+ pruning) ✅
+- **Poor fit**: Fully random high-dimensional data (0% pruning, overhead dominates) ❌
+- **For unstructured data**: Use [NearestNeighbors.jl](https://github.com/KristofferC/NearestNeighbors.jl) (KDTree, BallTree) or [HNSW.jl](https://github.com/JuliaNeighbors/HNSW.jl) for approximate search
 
-Refer to `IMPLEMENTATION_ROADMAP.md` for detailed task breakdown and progress tracking.
+### 🚧 Optimization Opportunities (Future Work):
+- ⚠️ LoopVectorization.jl (`@turbo` macro) - **must benchmark first, may hurt performance**
+- ⚠️ StaticArrays for small fixed-size vectors (3D/4D data)
+- ⚠️ Parallel batch queries with `@threads` or distributed computing
+- ⚠️ Serialization/deserialization of trees for disk caching
+- ⚠️ Approximate search with epsilon parameter (API exists, could optimize traversal order)
+- ⚠️ GPU acceleration for massive batch queries
+
+**Performance Reality**: ATRIA excels at **low intrinsic dimensionality**:
+- **Time series embeddings**: 2-3.4x faster (97% pruning on chaotic attractors)
+- **Dynamical systems**: Exploits recurrence structure in phase space
+- **Random high-D data**: Poor performance (tree overhead, no structure to exploit)
+
+**Choosing the right k-NN algorithm:**
+
+| Data Characteristics | Best Algorithm | Why |
+|---------------------|----------------|-----|
+| Time series embeddings, chaos | **ATRIA** (this library) | Exploits low-dimensional manifold structure |
+| General spatial data, low-D | **KDTree** (NearestNeighbors.jl) | Balanced, general-purpose |
+| High-D with local structure | **BallTree** (NearestNeighbors.jl) | Better for curse of dimensionality |
+| Very high-D, approximate OK | **HNSW** (HNSW.jl) | Graph-based, sublinear scaling |
+
+**Note**: This library includes brute force implementations (`brute_knn()`) purely for **internal testing and validation**. They are not optimized for production use.
+
+**Example usage:**
+```julia
+using ATRIANeighbors
+
+# ✅ GOOD: Time series with delay embedding (low intrinsic dimension)
+ts = load_lorenz_attractor()  # Chaotic time series
+ps = EmbeddedTimeSeries(ts, dim=3, delay=10)
+tree = ATRIA(ps)
+neighbors = knn(tree, query, k=10)  # 3x faster than brute force
+
+# ❌ BAD: Random high-dimensional data
+data = randn(10000, 100)  # No structure
+# Don't use ATRIA! Use NearestNeighbors.jl instead:
+# using NearestNeighbors
+# kdtree = KDTree(data')
+# neighbors = knn(kdtree, query, 10)
+```
 
 ## Development Guidelines
 
@@ -162,9 +229,14 @@ Refer to `IMPLEMENTATION_ROADMAP.md` for detailed task breakdown and progress tr
 
 2. **Memory Layout**: The permutation table is designed for cache-friendly access during tree traversal. Maintain this pattern when implementing search.
 
-3. **Inlining**: Hot path functions (especially distance calculations) should use `@inline` for performance.
+3. **Inlining**: Hot path functions (especially distance calculations) should use `@inline` for performance. All distance metric functions are properly annotated with `@inline`.
 
-4. **SIMD**: Distance calculations can benefit from `@simd` or `@turbo` (LoopVectorization.jl). Add these optimizations in Phase 6.
+4. **SIMD Vectorization**:
+   - **⚠️ Use with caution!** `@simd` often **hurts** performance rather than helping
+   - Julia's LLVM backend usually auto-vectorizes better without explicit `@simd`
+   - Distance calculations involve sqrt and complex operations that may not vectorize well
+   - For future optimization, consider `@turbo` from LoopVectorization.jl, but **benchmark first**
+   - Current implementation relies on LLVM's auto-vectorization (which is excellent)
 
 ### Tree Construction Details
 

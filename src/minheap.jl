@@ -7,12 +7,15 @@
 """
     MinHeap{T}
 
-A simple array-based min-heap for priority queue operations.
+A simple array-based min-heap for priority queue operations on SearchItem.
 
 Much faster than DataStructures.PriorityQueue for our use case because:
 - No hashing required (PriorityQueue uses Dict internally)
 - Contiguous memory layout for better cache locality
 - Simpler operations with less overhead
+
+**Note**: This implementation is specialized for SearchItem and uses its d_min field
+for ordering. The type parameter T is kept for consistency but is expected to be SearchItem.
 """
 mutable struct MinHeap{T}
     data::Vector{T}
@@ -51,11 +54,12 @@ Ensure heap has at least the specified capacity.
 end
 
 """
-    push!(h::MinHeap{T}, item::T, priority::Float64) where T
+    push!(h::MinHeap{T}, item::T) where T
 
-Push an item onto the heap with given priority.
+Push an item onto the heap. Items must have isless defined.
+For SearchItem, ordering is by d_min field.
 """
-function Base.push!(h::MinHeap{SearchItem}, item::SearchItem)
+function Base.push!(h::MinHeap{T}, item::T) where T
     # Resize if needed
     _ensure_capacity!(h, h.size + 1)
 
@@ -71,22 +75,21 @@ end
     _percolate_up!(h::MinHeap, i::Int)
 
 Bubble element at index i up to maintain heap property.
-Uses d_min as the priority (lower d_min = higher priority).
+Uses isless for comparison (for SearchItem, this compares d_min).
 """
-function _percolate_up!(h::MinHeap{SearchItem}, i::Int)
+function _percolate_up!(h::MinHeap{T}, i::Int) where T
     @inbounds item = h.data[i]
-    priority = item.d_min
 
     while i > 1
         parent = i >> 1  # i ÷ 2
-        @inbounds parent_priority = h.data[parent].d_min
+        @inbounds parent_item = h.data[parent]
 
-        if priority >= parent_priority
+        if !isless(item, parent_item)
             break
         end
 
         # Move parent down
-        @inbounds h.data[i] = h.data[parent]
+        @inbounds h.data[i] = parent_item
         i = parent
     end
 
@@ -98,7 +101,7 @@ end
 
 Remove and return the minimum element (highest priority).
 """
-function Base.popfirst!(h::MinHeap{SearchItem})
+function Base.popfirst!(h::MinHeap{T}) where T
     if h.size == 0
         throw(ArgumentError("Heap is empty"))
     end
@@ -118,11 +121,10 @@ end
     _percolate_down!(h::MinHeap, i::Int)
 
 Bubble element at index i down to maintain heap property.
-Uses d_min as the priority (lower d_min = higher priority).
+Uses isless for comparison (for SearchItem, this compares d_min).
 """
-function _percolate_down!(h::MinHeap{SearchItem}, i::Int)
+function _percolate_down!(h::MinHeap{T}, i::Int) where T
     @inbounds item = h.data[i]
-    priority = item.d_min
     half_size = h.size >> 1  # h.size ÷ 2
 
     while i <= half_size
@@ -130,30 +132,26 @@ function _percolate_down!(h::MinHeap{SearchItem}, i::Int)
         left = i << 1  # i * 2
         right = left + 1
 
-        @inbounds left_priority = h.data[left].d_min
+        @inbounds left_item = h.data[left]
 
         # Determine which child to compare with
+        child_item = left_item
+        child = left
         if right <= h.size
-            @inbounds right_priority = h.data[right].d_min
-            if right_priority < left_priority
+            @inbounds right_item = h.data[right]
+            if isless(right_item, left_item)
+                child_item = right_item
                 child = right
-                child_priority = right_priority
-            else
-                child = left
-                child_priority = left_priority
             end
-        else
-            child = left
-            child_priority = left_priority
         end
 
         # Check if we're done
-        if priority <= child_priority
+        if !isless(child_item, item)
             break
         end
 
         # Move child up
-        @inbounds h.data[i] = h.data[child]
+        @inbounds h.data[i] = child_item
         i = child
     end
 

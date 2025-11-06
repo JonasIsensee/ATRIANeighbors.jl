@@ -81,7 +81,7 @@ struct SquaredEuclideanMetric <: Metric end
 
 Compute squared Euclidean distance between two points.
 """
-function distance(::SquaredEuclideanMetric, p1, p2)
+@inline function distance(::SquaredEuclideanMetric, p1, p2)
     sum_sq = 0.0
     @inbounds for i in eachindex(p1)
         diff = p1[i] - p2[i]
@@ -95,7 +95,7 @@ end
 
 Compute squared Euclidean distance with early termination.
 """
-function distance(::SquaredEuclideanMetric, p1, p2, thresh::Float64)
+@inline function distance(::SquaredEuclideanMetric, p1, p2, thresh::Float64)
     sum_sq = 0.0
 
     @inbounds for i in eachindex(p1)
@@ -128,7 +128,7 @@ struct MaximumMetric <: Metric end
 
 Compute maximum distance between two points.
 """
-function distance(::MaximumMetric, p1, p2)
+@inline function distance(::MaximumMetric, p1, p2)
     max_dist = 0.0
     @inbounds for i in eachindex(p1)
         diff = abs(p1[i] - p2[i])
@@ -142,7 +142,7 @@ end
 
 Compute maximum distance with early termination.
 """
-function distance(::MaximumMetric, p1, p2, thresh::Float64)
+@inline function distance(::MaximumMetric, p1, p2, thresh::Float64)
     max_dist = 0.0
 
     @inbounds for i in eachindex(p1)
@@ -189,7 +189,7 @@ end
 
 Compute exponentially weighted Euclidean distance.
 """
-function distance(metric::ExponentiallyWeightedEuclidean, p1, p2)
+@inline function distance(metric::ExponentiallyWeightedEuclidean, p1, p2)
     sum_sq = 0.0
     weight = 1.0
     lambda = metric.lambda
@@ -208,7 +208,7 @@ end
 
 Compute exponentially weighted Euclidean distance with early termination.
 """
-function distance(metric::ExponentiallyWeightedEuclidean, p1, p2, thresh::Float64)
+@inline function distance(metric::ExponentiallyWeightedEuclidean, p1, p2, thresh::Float64)
     thresh_sq = thresh * thresh
     sum_sq = 0.0
     weight = 1.0

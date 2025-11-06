@@ -14,3 +14,8 @@ profile_results/
 profiling/profile_results/
 profiling/**/*.jlprof
 profiling/**/*.txt
+
+# Benchmark outputs
+benchmark/*.dat
+benchmark/*.csv
+benchmark/results/
