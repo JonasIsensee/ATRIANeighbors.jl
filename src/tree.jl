@@ -245,7 +245,7 @@ function assign_points_to_centers!(
     g_min_left = Inf
     g_min_right = Inf
 
-    while true
+    @inbounds while true
         i_belongs_to_left = true
         j_belongs_to_right = true
 

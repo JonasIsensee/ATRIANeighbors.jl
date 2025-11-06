@@ -30,7 +30,7 @@ Compute full Euclidean distance between two points.
 """
 @inline function distance(::EuclideanMetric, p1, p2)
     sum_sq = 0.0
-    @inbounds for i in eachindex(p1)
+    @inbounds @fastmath @simd for i in eachindex(p1)
         diff = p1[i] - p2[i]
         sum_sq += diff * diff
     end
@@ -49,6 +49,7 @@ a value >= thresh. This is a key optimization for the ATRIA algorithm.
     thresh_sq = thresh * thresh
     sum_sq = 0.0
 
+    # Note: Cannot use @simd here due to early termination
     @inbounds for i in eachindex(p1)
         diff = p1[i] - p2[i]
         sum_sq += diff * diff
@@ -83,7 +84,7 @@ Compute squared Euclidean distance between two points.
 """
 @inline function distance(::SquaredEuclideanMetric, p1, p2)
     sum_sq = 0.0
-    @inbounds for i in eachindex(p1)
+    @inbounds @fastmath @simd for i in eachindex(p1)
         diff = p1[i] - p2[i]
         sum_sq += diff * diff
     end
@@ -98,6 +99,7 @@ Compute squared Euclidean distance with early termination.
 @inline function distance(::SquaredEuclideanMetric, p1, p2, thresh::Float64)
     sum_sq = 0.0
 
+    # Note: Cannot use @simd here due to early termination
     @inbounds for i in eachindex(p1)
         diff = p1[i] - p2[i]
         sum_sq += diff * diff
@@ -194,6 +196,7 @@ Compute exponentially weighted Euclidean distance.
     weight = 1.0
     lambda = metric.lambda
 
+    # Note: Cannot use @simd here due to weight accumulation dependency
     @inbounds for i in eachindex(p1)
         diff = p1[i] - p2[i]
         sum_sq += weight * diff * diff

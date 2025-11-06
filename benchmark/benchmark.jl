@@ -307,8 +307,8 @@ function cmd_profile_alloc()
     end
 
     println("@btime analysis:")
-    @btime knn($tree, $query_point, k=$k)
-    bytes_without = @allocated knn(tree, query_point, k=k)
+    @btime ATRIANeighbors.knn($tree, $query_point, k=$k)
+    bytes_without = @allocated ATRIANeighbors.knn(tree, query_point, k=k)
     println("@allocated: $bytes_without bytes")
 
     println("\n" * "-"^80)
@@ -320,12 +320,12 @@ function cmd_profile_alloc()
 
     # Warmup
     for _ in 1:5
-        knn(tree, query_point, k=k, ctx=ctx)
+        ATRIANeighbors.knn(tree, query_point, k=k, ctx=ctx)
     end
 
     println("@btime analysis:")
-    @btime knn($tree, $query_point, k=$k, ctx=$ctx)
-    bytes_with = @allocated knn(tree, query_point, k=k, ctx=ctx)
+    @btime ATRIANeighbors.knn($tree, $query_point, k=$k, ctx=$ctx)
+    bytes_with = @allocated ATRIANeighbors.knn(tree, query_point, k=k, ctx=ctx)
     println("@allocated: $bytes_with bytes")
 
     println("\n" * "="^80)

@@ -224,7 +224,7 @@ Insert a neighbor into the pre-allocated table.
         # Heapify up (max heap)
         idx = ctx.neighbor_count
         @inbounds while idx > 1
-            parent = idx ÷ 2
+            parent = idx >> 1  # Faster than idx ÷ 2
             if ctx.neighbors[idx].distance > ctx.neighbors[parent].distance
                 ctx.neighbors[idx], ctx.neighbors[parent] = ctx.neighbors[parent], ctx.neighbors[idx]
                 idx = parent
@@ -244,8 +244,8 @@ Insert a neighbor into the pre-allocated table.
         # Heapify down
         idx = 1
         @inbounds while true
-            left = 2 * idx
-            right = 2 * idx + 1
+            left = idx << 1  # Faster than 2 * idx
+            right = left + 1
             largest = idx
 
             if left <= ctx.neighbor_count && ctx.neighbors[left].distance > ctx.neighbors[largest].distance

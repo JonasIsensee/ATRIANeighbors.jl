@@ -42,7 +42,7 @@ println("--- distance(ps, i, query) ---")
 println()
 
 println("--- knn(tree, query, k=10) ---")
-@code_warntype knn(tree, query, k=10)
+@code_warntype ATRIANeighbors.knn(tree, query, k=10)
 println()
 
 println("--- getpoint(ps, i) ---")
@@ -62,22 +62,22 @@ println()
 
 # Warmup
 for i in 1:10
-    knn(tree, query, k=10)
+    ATRIANeighbors.knn(tree, query, k=10)
 end
 
 println("--- k-NN search (single query) ---")
-@time knn(tree, query, k=10)
-alloc_info = @allocated knn(tree, query, k=10)
+@time ATRIANeighbors.knn(tree, query, k=10)
+alloc_info = @allocated ATRIANeighbors.knn(tree, query, k=10)
 println("Total allocations: $(alloc_info) bytes")
 println()
 
 println("--- k-NN search (100 queries, amortized) ---")
 queries = [data[i, :] for i in 1:100]
 @time for q in queries
-    knn(tree, q, k=10)
+    ATRIANeighbors.knn(tree, q, k=10)
 end
 total_alloc = @allocated for q in queries
-    knn(tree, q, k=10)
+    ATRIANeighbors.knn(tree, q, k=10)
 end
 println("Total allocations: $(total_alloc) bytes")
 println("Per query: $(total_alloc / 100) bytes")
@@ -113,7 +113,7 @@ queries_large = [data_large[i, :] for i in query_indices]
 # Warmup
 println("Warming up...")
 for q in queries_large[1:10]
-    knn(tree_large, q, k=20)
+    ATRIANeighbors.knn(tree_large, q, k=20)
 end
 
 # Profile k-NN search
@@ -121,7 +121,7 @@ println("\nProfiling k-NN search (20-NN, $n_queries queries)...")
 Profile.clear()
 @profile begin
     for q in queries_large
-        knn(tree_large, q, k=20)
+        ATRIANeighbors.knn(tree_large, q, k=20)
     end
 end
 
@@ -186,7 +186,7 @@ println()
 println("--- Sequential queries (cache-friendly) ---")
 queries_seq = [data_large[i, :] for i in 1:n_queries]
 @time for q in queries_seq
-    knn(tree_large, q, k=20)
+    ATRIANeighbors.knn(tree_large, q, k=20)
 end
 println()
 
@@ -195,7 +195,7 @@ println("--- Random queries (cache-unfriendly) ---")
 random_indices = rand(rng, 1:N_large, n_queries)
 queries_rand = [data_large[i, :] for i in random_indices]
 @time for q in queries_rand
-    knn(tree_large, q, k=20)
+    ATRIANeighbors.knn(tree_large, q, k=20)
 end
 println()
 

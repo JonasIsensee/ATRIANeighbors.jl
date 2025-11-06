@@ -153,7 +153,7 @@ Optimized to avoid view overhead.
 """
 @inline function _euclidean_distance_row(data::Matrix{T}, row::Int, query) where T
     sum_sq = zero(T)
-    @inbounds for j in 1:size(data, 2)
+    @inbounds @fastmath @simd for j in 1:size(data, 2)
         diff = data[row, j] - query[j]
         sum_sq += diff * diff
     end
@@ -170,6 +170,7 @@ Optimized to avoid view overhead.
     thresh_sq = thresh * thresh
     sum_sq = zero(T)
 
+    # Note: Cannot use @simd here due to early termination
     @inbounds for j in 1:size(data, 2)
         diff = data[row, j] - query[j]
         sum_sq += diff * diff
