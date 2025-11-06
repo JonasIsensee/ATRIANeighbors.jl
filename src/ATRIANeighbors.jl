@@ -34,8 +34,4 @@ export range_search, count_range
 include("search_optimized.jl")
 export knn, knn_batch, SearchContext
 
-# Brute force reference implementation
-include("brute.jl")
-export brute_knn, brute_knn_batch, brute_range_search, brute_count_range
-
 end # module ATRIANeighbors

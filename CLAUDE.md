@@ -132,7 +132,6 @@ ATRIA builds a binary tree for efficient nearest neighbor search using triangle 
 - **`src/minheap.jl`**: Custom array-based min-heap for priority queue (faster than DataStructures.jl)
 - **`src/search_optimized.jl`**: Near-allocation-free k-NN search with object pooling (2 allocations/224 bytes per query with context reuse)
 - **`src/search.jl`**: Range search and count_range algorithms (depth-first traversal for radius queries)
-- **`src/brute.jl`**: Brute force reference implementations for validation
 
 **Note on Search Implementation**: The k-NN search is split into two implementations:
 - `search_optimized.jl` contains the production implementation with zero allocations during search via `SearchContext` object pooling
@@ -142,7 +141,7 @@ ATRIA builds a binary tree for efficient nearest neighbor search using triangle 
 
 All metrics support **partial distance calculation**: early termination when distance exceeds a threshold, which provides significant speedup.
 
-**Important**: `SquaredEuclideanMetric` (L2 without sqrt) should only be used with brute force search, NOT with ATRIA. The triangle inequality requires true Euclidean distance.
+**Important**: `SquaredEuclideanMetric` (L2 without sqrt) should NOT be used with ATRIA tree search. The triangle inequality requires true Euclidean distance.
 
 ### Point Set Abstractions
 
@@ -166,7 +165,6 @@ All point sets expose:
 - ✅ Tree inspection utilities
 - ✅ **Near-allocation-free k-NN search** with object pooling (224 bytes/query with context reuse)
 - ✅ **Range search** and **count_range** (correlation sum) algorithms
-- ✅ **Brute force reference** implementations (for validation and small datasets)
 - ✅ **High-level API**: `knn()`, `knn_batch()`, `range_search()`, `count_range()`
 - ✅ Custom MinHeap implementation
 - ✅ Comprehensive test suite with correctness validation
@@ -198,7 +196,7 @@ All point sets expose:
 | High-D with local structure | **BallTree** (NearestNeighbors.jl) | Better for curse of dimensionality |
 | Very high-D, approximate OK | **HNSW** (HNSW.jl) | Graph-based, sublinear scaling |
 
-**Note**: This library includes brute force implementations (`brute_knn()`) purely for **internal testing and validation**. They are not optimized for production use.
+**Note**: Test and benchmark files include simple brute force reference implementations for validation purposes. These are not part of the exported API and are only used internally for testing correctness.
 
 **Example usage:**
 ```julia
@@ -208,7 +206,7 @@ using ATRIANeighbors
 ts = load_lorenz_attractor()  # Chaotic time series
 ps = EmbeddedTimeSeries(ts, dim=3, delay=10)
 tree = ATRIA(ps)
-neighbors = knn(tree, query, k=10)  # 3x faster than brute force
+neighbors = knn(tree, query, k=10)  # 3x faster for manifold data
 
 # ❌ BAD: Random high-dimensional data
 data = randn(10000, 100)  # No structure
@@ -265,7 +263,7 @@ When implementing search, verify results match exactly against this test data.
 
 3. **Triangle inequality bounds**: When implementing search, carefully compute d_min and d_max using both Rmax and g_min. See SearchItem constructors in `src/structures.jl:90-109`.
 
-4. **Distance metric compatibility**: Never use SquaredEuclideanMetric with ATRIA tree search - it violates triangle inequality. Only use it with brute force.
+4. **Distance metric compatibility**: Never use SquaredEuclideanMetric with ATRIA tree search - it violates triangle inequality.
 
 ## Reference Materials
 

@@ -19,6 +19,25 @@ using BenchmarkTools
 using Random
 using Printf
 
+# Helper function using NearestNeighbors.jl BruteTree for benchmarking
+function brute_knn(ps::AbstractPointSet, query_point, k::Int)
+    N, D = size(ps)
+
+    # Extract data matrix (rows are points)
+    data = zeros(N, D)
+    for i in 1:N
+        data[i, :] = getpoint(ps, i)
+    end
+
+    # NearestNeighbors expects columns as points, so transpose
+    tree = BruteTree(Matrix(data'), NearestNeighbors.Euclidean())
+
+    # Perform query
+    idxs, dists = NearestNeighbors.knn(tree, query_point, k)
+
+    return [ATRIANeighbors.Neighbor(idx, dist) for (idx, dist) in zip(idxs, dists)]
+end
+
 function generate_lorenz(N; σ=10.0, ρ=28.0, β=8/3, dt=0.01, transient=1000)
     # Initial condition
     x, y, z = 1.0, 1.0, 1.0
