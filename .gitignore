@@ -8,6 +8,8 @@ juliaup.sh
 # Benchmark results and temporary files
 benchmark/**/*.txt
 benchmark/results/
+benchmark/utils/results/
+**/*.jld2
 
 # Profiling results
 profile_results/

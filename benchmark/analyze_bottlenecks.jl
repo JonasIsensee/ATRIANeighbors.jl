@@ -5,7 +5,7 @@ Detailed performance analysis to identify bottlenecks in ATRIA neighbor search.
 """
 
 using Pkg
-Pkg.activate(".")
+Pkg.activate(@__DIR__)
 using ATRIANeighbors
 using Random
 using Printf
@@ -13,7 +13,7 @@ using Profile
 using InteractiveUtils  # For @code_warntype
 
 # Load data generators
-include("data_generators.jl")
+include(joinpath(@__DIR__, "utils", "data_generators.jl"))
 
 println("=" ^ 80)
 println("ATRIA Performance Bottleneck Analysis")

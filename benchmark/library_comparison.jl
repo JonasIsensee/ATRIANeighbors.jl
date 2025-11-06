@@ -27,9 +27,9 @@ using Printf
 using Dates
 
 # Load benchmark modules
-include("cache.jl")
-include("data_generators.jl")
-include("plotting.jl")
+include(joinpath(@__DIR__, "utils", "cache.jl"))
+include(joinpath(@__DIR__, "utils", "data_generators.jl"))
+include(joinpath(@__DIR__, "utils", "plotting.jl"))
 
 # Try to load HNSW
 HNSW_AVAILABLE = false

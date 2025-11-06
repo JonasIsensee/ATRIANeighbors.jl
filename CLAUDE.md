@@ -63,20 +63,29 @@ include("src/ATRIANeighbors.jl")
 
 ### Performance Benchmarking
 ```bash
-# Demonstrate data-dependent performance (IMPORTANT!)
-julia --project=. benchmark/benchmark_data_distributions.jl
+# Single unified entry point for all benchmarks
+cd benchmark
+
+# Quick demo: data-dependent performance (IMPORTANT!)
+julia --project=. benchmark.jl quick
+
+# Generate README performance table
+julia --project=. benchmark.jl readme
+
+# Library comparison (quick/standard/comprehensive modes)
+julia --project=. benchmark.jl compare quick
+
+# Profile allocations (shows SearchContext benefit)
+julia --project=. benchmark.jl profile-alloc
 
 # Comprehensive bottleneck analysis
-julia --project=. benchmark/analyze_bottlenecks.jl
+julia --project=. benchmark.jl profile-perf
 
-# Profile allocations
-julia --project=. benchmark/profile_allocations.jl
-
-# Compare with other algorithms
-julia --project=. benchmark/library_comparison.jl
+# Show all available commands
+julia --project=. benchmark.jl help
 ```
 
-**Key benchmark:** `benchmark_data_distributions.jl` demonstrates ATRIA's core characteristic - excellent performance on clustered/manifold data (3.6x faster), poor on random data (2x slower).
+**Key benchmark:** `benchmark.jl quick` demonstrates ATRIA's core characteristic - excellent performance on clustered/manifold data (2-3x faster with 97% pruning), poor on random data (0.5x slower with 0% pruning).
 
 ## Architecture Overview
 
@@ -130,12 +139,12 @@ ATRIA builds a binary tree for efficient nearest neighbor search using triangle 
 - **`src/pointsets.jl`**: Point set abstractions (PointSet for matrices, EmbeddedTimeSeries for time series)
 - **`src/tree.jl`**: Tree construction algorithm
 - **`src/minheap.jl`**: Custom array-based min-heap for priority queue (faster than DataStructures.jl)
-- **`src/search_optimized.jl`**: Near-allocation-free k-NN search with object pooling (2 allocations/224 bytes per query with context reuse)
+- **`src/search_optimized.jl`**: k-NN search with optional SearchContext reuse (2 allocations/~224 bytes with context reuse, vs 511 allocations/32KB without)
 - **`src/search.jl`**: Range search and count_range algorithms (depth-first traversal for radius queries)
 - **`src/brute.jl`**: Brute force reference implementations for validation
 
 **Note on Search Implementation**: The k-NN search is split into two implementations:
-- `search_optimized.jl` contains the production implementation with zero allocations during search via `SearchContext` object pooling
+- `search_optimized.jl` contains the production implementation with minimal allocations via `SearchContext` object pooling (reuse context for batch queries to achieve 99% allocation reduction)
 - `search.jl` focuses on range-based queries (range_search, count_range) which use simpler stack-based traversal
 
 ### Distance Metrics
@@ -164,7 +173,7 @@ All point sets expose:
 - ✅ Point set abstractions (PointSet, EmbeddedTimeSeries)
 - ✅ Tree construction algorithm with optimized partitioning
 - ✅ Tree inspection utilities
-- ✅ **Near-allocation-free k-NN search** with object pooling (224 bytes/query with context reuse)
+- ✅ **k-NN search** with optional SearchContext pooling (99% allocation reduction: 32KB → ~224 bytes per query when reusing context)
 - ✅ **Range search** and **count_range** (correlation sum) algorithms
 - ✅ **Brute force reference** implementations (for validation and small datasets)
 - ✅ **High-level API**: `knn()`, `knn_batch()`, `range_search()`, `count_range()`

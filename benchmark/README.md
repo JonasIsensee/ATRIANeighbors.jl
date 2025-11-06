@@ -1,13 +1,126 @@
 # ATRIANeighbors.jl Benchmark Suite
 
-This directory contains a comprehensive benchmarking suite for evaluating ATRIANeighbors.jl performance against multiple nearest neighbor search libraries.
+Comprehensive benchmarking suite for evaluating ATRIANeighbors.jl performance against multiple nearest neighbor search libraries.
 
-## Overview
+## Quick Start
 
-The benchmark suite evaluates ATRIA performance on datasets it's designed to excel at:
-- **Time-delay embedded data** (Lorenz attractor, Rössler attractor, Henon map)
-- **High-dimensional data** (D > 10)
-- **Non-uniformly distributed data** (clustered, manifold-like structures)
+### Installation
+
+Install dependencies:
+
+```bash
+cd benchmark
+julia --project=. -e 'using Pkg; Pkg.instantiate()'
+```
+
+### Run Benchmarks
+
+**Single unified entry point** for all benchmarks:
+
+```bash
+# Quick sanity check (data distribution demonstration)
+julia --project=. benchmark.jl quick
+
+# Generate README performance table
+julia --project=. benchmark.jl readme
+
+# Library comparison (quick/standard/comprehensive)
+julia --project=. benchmark.jl compare quick
+julia --project=. benchmark.jl compare standard
+julia --project=. benchmark.jl compare comprehensive
+
+# Profile memory allocations
+julia --project=. benchmark.jl profile-alloc
+
+# Profile performance bottlenecks
+julia --project=. benchmark.jl profile-perf
+
+# Show help
+julia --project=. benchmark.jl help
+```
+
+## Benchmark Commands
+
+### `quick` - Data Distribution Demo
+
+Fast demonstration (< 1 minute) showing how ATRIA performance depends on data structure:
+- **Random data**: Poor performance (~0.5x vs brute force) - no structure to exploit
+- **Clustered data**: Good performance (~2x vs brute force) - 89% pruning
+- **Very clustered**: Excellent performance (~3x vs brute force) - 97% pruning
+
+**Example output:**
+```
+Random data:        f_k=1.0, speedup=0.49x
+Clustered data:     f_k=0.11, speedup=2.0x
+Very clustered:     f_k=0.03, speedup=2.85x
+```
+
+This validates ATRIA's design for low-dimensional manifolds in high-D space.
+
+### `readme` - README Performance Table
+
+Generates the performance comparison table for the README (2-3 minutes):
+- Compares ATRIA vs KDTree, BallTree, and brute force
+- Uses Lorenz attractor data (N=50,000, D=3, k=10)
+- Measures build time and query time per neighbor search
+
+### `compare` - Library Comparison
+
+Comprehensive benchmarks comparing multiple libraries across datasets:
+
+**Modes:**
+- `quick`: Small test (2-5 minutes) - 3 datasets, N≤10k, 3 trials
+- `standard`: Standard suite (15-30 minutes) - 5 datasets, N≤50k, 5 trials
+- `comprehensive`: Full suite (1-2 hours) - 8 datasets, N≤100k, 10 trials
+
+**Output:**
+- Markdown report (`BENCHMARK_REPORT.md`) with comparative analysis
+- PNG plots comparing performance across all libraries
+- Detailed results table with all metrics
+- Results cached in `results/library_comparison_*/`
+
+### `profile-alloc` - Allocation Profiling
+
+Profiles memory allocations showing the benefit of SearchContext reuse:
+
+```
+WITHOUT context reuse: 32752 bytes (511 allocations)
+WITH context reuse:    288 bytes (2 allocations)
+Reduction: 32464 bytes (99.1%)
+```
+
+**Recommendation:** Always use `SearchContext` for batch queries!
+
+**Example:**
+```julia
+ctx = SearchContext(tree, k)
+for query in queries
+    neighbors = knn(tree, query, k=k, ctx=ctx)
+end
+```
+
+### `profile-perf` - Performance Profiling
+
+Detailed performance analysis identifying bottlenecks:
+- Type stability checks with `@code_warntype`
+- Memory allocation analysis
+- CPU profiling with sample counts
+- Cache behavior analysis (sequential vs random access)
+
+## File Structure
+
+```
+benchmark/
+├── benchmark.jl              # ⭐ Single unified entry point
+├── analyze_bottlenecks.jl    # Detailed profiling (used by profile-perf)
+├── library_comparison.jl     # Library comparison infrastructure
+├── run_full_comparison.jl    # Full comparison runner (used by compare)
+├── utils/
+│   ├── data_generators.jl    # Dataset generation utilities
+│   ├── cache.jl              # Result caching system
+│   └── plotting.jl           # Visualization utilities
+└── results/                  # Cached results and reports
+```
 
 ## Libraries Compared
 
@@ -15,200 +128,14 @@ The benchmark suite evaluates ATRIA performance on datasets it's designed to exc
 - **NearestNeighbors.jl** - KDTree, BallTree, and BruteTree implementations
 - **HNSW.jl** - Hierarchical Navigable Small World graphs (optional)
 
-## Files
-
-### Core Benchmark Scripts
-- **`library_comparison.jl`**: Comprehensive library comparison framework (NEW!)
-- **`run_full_comparison.jl`**: Main entry point for full library benchmarks (NEW!)
-- **`test_library_comparison.jl`**: Quick test of library comparison (NEW!)
-- **`run_benchmarks.jl`**: Original ATRIA benchmark orchestration script
-- **`data_generators.jl`**: Dataset generation (attractors, clusters, manifolds, etc.)
-- **`cache.jl`**: Result caching system using JLD2
-- **`plotting.jl`**: Visualization utilities for benchmark results
-- **`results/`**: Directory for cached results and generated reports
-
-## Quick Start
-
-### Installation
-
-This benchmark suite uses **Julia 1.10** and depends on the local version of `ATRIANeighbors` from the parent directory.
-
-First, ensure Julia 1.10 is installed and set as default:
-
-```bash
-~/.juliaup/bin/juliaup add 1.10
-~/.juliaup/bin/juliaup default 1.10
-```
-
-Then instantiate the benchmark environment:
-
-```bash
-cd benchmark
-~/.juliaup/bin/julialauncher --project=. -e 'using Pkg; Pkg.instantiate()'
-```
-
-This installs all benchmark-specific dependencies (BenchmarkTools, NearestNeighbors, HNSW, JLD2, Plots, DynamicalSystems).
-
-## Library Comparison Benchmarks (NEW!)
-
-### Quick Test (2-5 minutes)
-
-Test the library comparison framework:
-
-```bash
-~/.juliaup/bin/julialauncher --project=. test_library_comparison.jl
-```
-
-### Full Library Comparison
-
-Run comprehensive benchmarks comparing all libraries:
-
-```bash
-# Standard mode (15-30 minutes)
-~/.juliaup/bin/julialauncher --project=. run_full_comparison.jl
-
-# Quick mode (2-5 minutes)
-BENCHMARK_MODE=quick ~/.juliaup/bin/julialauncher --project=. run_full_comparison.jl
-
-# Comprehensive mode (1-2 hours)
-BENCHMARK_MODE=comprehensive ~/.juliaup/bin/julialauncher --project=. run_full_comparison.jl
-```
-
-Or from Julia REPL:
-
-```julia
-include("benchmark/run_full_comparison.jl")
-
-# Quick mode
-results, report = run_full_benchmark(mode=:quick)
-
-# Standard mode
-results, report = run_full_benchmark(mode=:standard)
-
-# Comprehensive mode
-results, report = run_full_benchmark(mode=:comprehensive)
-```
-
-### Output
-
-The library comparison generates:
-- **Markdown report** (`BENCHMARK_REPORT.md`) with comparative analysis
-- **PNG plots** comparing performance across all libraries
-- **Detailed results table** with all metrics
-
-Reports are saved to `benchmark/results/library_comparison_*/`
-
-### Running Benchmarks (Original ATRIA-only)
-
-#### Quick Benchmark (Smoke Test)
-
-Run a small benchmark suite for testing:
-
-```julia
-julia --project=. run_benchmarks.jl
-```
-
-Or from within Julia:
-
-```julia
-include("run_benchmarks.jl")
-results = quick_benchmark()
-```
-
-This runs a small subset of benchmarks (N ∈ {100, 500, 1000}, D=10, k=10) on a few dataset types. Takes ~1-5 minutes.
-
-#### Full Benchmark Suite
-
-Run the complete benchmark suite (takes significant time):
-
-```julia
-include("run_benchmarks.jl")
-results = full_benchmark()
-```
-
-This runs comprehensive benchmarks across:
-- **Algorithms**: ATRIA, KDTree, BallTree, BruteTree
-- **Datasets**: Lorenz, Rössler, Gaussian mixture, hierarchical, uniform, sphere, line
-- **Sizes**: N ∈ {100, 500, 1000, 5000, 10000, 50000}
-- **Dimensions**: D ∈ {2, 5, 10, 20, 50, 100}
-- **k values**: k ∈ {1, 5, 10, 50, 100}
-
-**Warning**: This can take hours to run! Results are cached for reuse.
-
-#### Custom Benchmark
-
-Run specific benchmarks:
-
-```julia
-include("run_benchmarks.jl")
-
-results = run_benchmark_suite(
-    algorithms=[:ATRIA, :KDTree],
-    dataset_types=[:lorenz, :gaussian_mixture],
-    N_values=[1000, 5000, 10000],
-    D_values=[20],
-    k_values=[10],
-    n_queries=50,
-    trials=3,
-    use_cache=true
-)
-
-# Print results table
-print_results_table(results, sortby=:query_time)
-```
-
-### Result Caching
-
-The benchmark suite caches results to avoid re-running expensive computations:
-
-- **Cache location**: `benchmark/results/*.jld2`
-- **Cache invalidation**: Automatic when package versions or Julia version changes
-- **Cache management**:
-
-```julia
-include("cache.jl")
-
-# List all cached results
-list_cache()
-
-# Clear all cache
-clear_cache()
-
-# Clear specific cache (e.g., all ATRIA results)
-clear_cache(pattern="ATRIA")
-```
-
-### Visualization
-
-Generate plots from benchmark results:
-
-```julia
-include("plotting.jl")
-
-# Individual plots
-plot_build_time_vs_n(results, fixed_D=20)
-plot_query_time_vs_n(results, fixed_D=20, fixed_k=10)
-plot_speedup_factor(results, :BruteTree, fixed_D=20, fixed_k=10)
-plot_memory_usage(results, fixed_D=20)
-plot_pruning_effectiveness(results, fixed_D=20, fixed_k=10)
-
-# Save a plot
-plt = plot_query_time_vs_n(results, fixed_D=20, fixed_k=10)
-savefig(plt, "query_time.png")
-
-# Generate complete report with all plots
-output_dir = "results/my_report"
-create_benchmark_report(results, output_dir, baseline_algorithm=:BruteTree)
-```
-
 ## Dataset Types
 
-The following dataset types are available via `generate_dataset()`:
+Available via `generate_dataset()` in `utils/data_generators.jl`:
 
 ### Time Series Attractors (ATRIA's primary use case)
-- `:lorenz` - Lorenz attractor (3D)
-- `:rossler` - Rössler attractor (3D)
-- `:henon` - Henon map (2D)
+- `:lorenz` - Lorenz attractor (3D, chaotic)
+- `:rossler` - Rössler attractor (3D, chaotic)
+- `:henon` - Henon map (2D, chaotic)
 - `:logistic` - Logistic map (1D)
 
 ### Clustered Data
@@ -221,45 +148,75 @@ The following dataset types are available via `generate_dataset()`:
 - `:sphere` - Points on sphere (configurable D)
 - `:torus` - Torus (3D)
 
-### Uniform Data (baseline comparison)
+### Uniform Data (baseline)
 - `:uniform_hypercube` - Uniform in [0,1]^D
 - `:uniform_hypersphere` - Uniform in hypersphere
 - `:gaussian` - Standard Gaussian
 
-### Pathological Cases (stress tests)
+### Pathological Cases
 - `:line` - Points on a line (1D manifold in high-D space)
 - `:grid` - Regular grid
 - `:skewed_gaussian` - Highly skewed distribution
 
-## Example: Comparing ATRIA vs KDTree on Lorenz Attractor
+## When ATRIA Excels
+
+ATRIA outperforms KDTree/BallTree on:
+- Time-delay embedded attractors (2-3x faster)
+- High-dimensional data with low intrinsic dimensionality
+- Non-uniformly distributed data (clustered, manifold structures)
+- Large datasets (N > 10,000)
+
+## When ATRIA Struggles
+
+ATRIA may be slower on:
+- **Random high-dimensional data** (no structure to exploit, 0% pruning)
+- Low-dimensional uniform data (D < 5)
+- Very small datasets (N < 1,000, tree overhead dominates)
+- Grid-like structured data
+
+## Advanced Usage
+
+### Running from Julia REPL
 
 ```julia
-include("run_benchmarks.jl")
+# Load library comparison framework
+include("benchmark/library_comparison.jl")
 
-# Generate Lorenz attractor data
-data = generate_dataset(:lorenz, 10000, 3)
-
-# Benchmark ATRIA
-config_atria = BenchmarkConfig(
-    :ATRIA, :lorenz, 10000, 3, 10,
-    100,  # n_queries
-    5,    # trials
-    true, # use_cache
-    64    # min_points
+# Custom benchmark
+results = run_comprehensive_library_comparison(
+    dataset_types=[:lorenz, :gaussian_mixture],
+    N_values=[1000, 5000, 10000],
+    D_values=[20],
+    k_values=[10],
+    n_queries=50,
+    trials=3,
+    use_cache=true,
+    verbose=true
 )
-result_atria = run_single_benchmark(config_atria)
 
-# Benchmark KDTree
-config_kdtree = BenchmarkConfig(
-    :KDTree, :lorenz, 10000, 3, 10,
-    100, 5, true, 64
-)
-result_kdtree = run_single_benchmark(config_kdtree)
+# Generate report
+generate_comparison_report(results, "my_benchmark_results")
+```
 
-# Compare
-println("ATRIA query time: $(result_atria.query_time * 1000) ms")
-println("KDTree query time: $(result_kdtree.query_time * 1000) ms")
-println("Speedup: $(result_kdtree.query_time / result_atria.query_time)x")
+### Result Caching
+
+Results are automatically cached to avoid re-running expensive computations:
+- **Cache location**: `results/*.jld2`
+- **Cache invalidation**: Automatic on package version changes
+- **Clear cache**: Delete files in `results/` directory
+
+### Generating Plots
+
+```julia
+include("benchmark/utils/plotting.jl")
+
+# Individual plots
+plot_query_time_vs_n(results, fixed_D=20, fixed_k=10)
+plot_speedup_factor(results, :BruteTree, fixed_D=20, fixed_k=10)
+plot_pruning_effectiveness(results, fixed_D=20, fixed_k=10)
+
+# Complete report with all plots
+create_benchmark_report(results, "output_dir", baseline_algorithm=:BruteTree)
 ```
 
 ## Performance Metrics
@@ -267,86 +224,52 @@ println("Speedup: $(result_kdtree.query_time / result_atria.query_time)x")
 The benchmark suite measures:
 
 ### Tree Construction
-- **Build time** vs dataset size N (for fixed D)
-- **Build time** vs dimension D (for fixed N)
-- **Memory usage** (tree + permutation table)
+- Build time vs dataset size N
+- Build time vs dimension D
+- Memory usage (tree + permutation table)
 
 ### Query Performance
-- **Single query time** (k-NN, range search)
-- **Query time** vs k (for fixed N, D)
-- **Query time** vs N (for fixed k, D)
-- **Query time** vs D (for fixed k, N)
-- **Distance computations** (number of actual distance calculations)
+- Single query time (k-NN, range search)
+- Query time vs k
+- Query time vs N
+- Query time vs D
+- Distance computations (pruning effectiveness)
 
 ### Comparative Analysis
-- **Speedup factor** (ATRIA vs reference implementation)
-- **Pruning effectiveness** (percentage of tree pruned)
-
-## Interpreting Results
-
-### When ATRIA Should Excel
-ATRIA is designed to outperform KDTree/BallTree on:
-- High-dimensional data (D > 10)
-- Non-uniformly distributed data (clustered, manifold structures)
-- Time-delay embedded attractors
-- Large datasets (N > 10,000)
-
-### When ATRIA May Struggle
-ATRIA may be slower than alternatives on:
-- Low-dimensional uniform data (D < 5)
-- Very small datasets (N < 1,000)
-- Grid-like structured data
-- When k is very large (k > N/10)
-
-## Contributing New Benchmarks
-
-To add a new dataset type:
-
-1. Add generator function to `data_generators.jl`
-2. Export the function
-3. Add case to `generate_dataset()` function
-4. Document the dataset characteristics
-
-To add a new benchmark metric:
-
-1. Modify `BenchmarkResult` struct in `plotting.jl`
-2. Update `run_single_benchmark()` to compute the metric
-3. Add visualization function to `plotting.jl`
+- Speedup factor vs other algorithms
+- Pruning effectiveness (% of tree pruned)
+- **f_k metric**: Fraction of dataset examined (lower is better)
 
 ## Reproducibility
 
-All benchmarks use fixed random seeds (seed=42) for reproducibility. To ensure consistent results:
-
-1. Use the same Julia version
+All benchmarks use fixed random seeds (seed=42). For consistent results:
+1. Use the same Julia version (1.10)
 2. Use the same package versions (check `Manifest.toml`)
-3. Run on the same hardware (CPU, memory)
+3. Run on the same hardware
 4. Disable CPU frequency scaling if possible
 
 ## Troubleshooting
 
-### Out of Memory Errors
-Reduce dataset sizes or run fewer benchmarks at once:
-```julia
-results = run_benchmark_suite(N_values=[1000, 5000], D_values=[10, 20])
+### Out of Memory
+Reduce dataset sizes:
+```bash
+julia --project=. benchmark.jl compare quick  # Use quick mode
 ```
 
 ### Long Runtime
-Use caching and run incrementally:
-```julia
-# Run small datasets first (fast, will be cached)
-results1 = run_benchmark_suite(N_values=[100, 500, 1000], use_cache=true)
+Use caching and run incrementally. Results are cached automatically.
 
-# Then run large datasets (slow, but smaller ones are cached)
-results2 = run_benchmark_suite(N_values=[5000, 10000, 50000], use_cache=true)
-
-results = vcat(results1, results2)
+### Missing Dependencies
+Reinstall:
+```bash
+julia --project=. -e 'using Pkg; Pkg.instantiate()'
 ```
 
-### Cache Issues
-Clear the cache and rebuild:
-```julia
-include("cache.jl")
-clear_cache()
+### Command Not Found
+Make sure you're in the benchmark directory:
+```bash
+cd benchmark
+julia --project=. benchmark.jl help
 ```
 
 ## License
