@@ -190,6 +190,16 @@ mutable struct SearchContext
 end
 
 """
+    SearchContext(tree::ATRIATree, k::Int)
+
+Create a SearchContext sized appropriately for the given tree.
+Automatically determines the priority queue size based on tree structure.
+"""
+function SearchContext(tree::ATRIATree, k::Int)
+    return SearchContext(tree.total_clusters * 2, k)
+end
+
+"""
 Reset search context for a new query.
 """
 @inline function reset!(ctx::SearchContext, k::Int)
@@ -274,28 +284,50 @@ function extract_neighbors(ctx::SearchContext)
 end
 
 """
-    knn_optimized(tree::ATRIATree, query_point; k::Int=1, epsilon::Float64=0.0,
-                  exclude_range::Tuple{Int,Int}=(-1,-1), track_stats::Bool=false,
-                  ctx::Union{Nothing,SearchContext}=nothing)
+    knn(tree::ATRIATree, query_point; k::Int=1, epsilon::Float64=0.0,
+        exclude_range::Tuple{Int,Int}=(-1,-1), track_stats::Bool=false,
+        ctx::Union{Nothing,SearchContext}=nothing)
 
-Allocation-optimized k-NN search. Reuses SearchContext if provided.
+Search for k nearest neighbors using the ATRIA tree.
+
+# Arguments
+- `tree::ATRIATree`: The ATRIA tree to search
+- `query_point`: The query point (vector or point from point set)
+- `k::Int`: Number of nearest neighbors to find (default: 1)
+- `epsilon::Float64`: Approximation parameter (0.0 = exact search, >0.0 = approximate)
+- `exclude_range::Tuple{Int,Int}`: Exclude points in range [first, last] from results
+- `track_stats::Bool`: If true, return (neighbors, stats) with distance calculation counts
+- `ctx::Union{Nothing,SearchContext}`: Optional pre-allocated context for batch queries
+
+# Returns
+- If `track_stats=false`: Vector of `Neighbor` objects sorted by distance
+- If `track_stats=true`: Tuple of (neighbors, stats) where stats contains distance_calcs and f_k
+
+# Performance
+For batch queries, reuse a SearchContext to avoid allocations:
+```julia
+ctx = SearchContext(tree, k)
+for query in queries
+    neighbors = knn(tree, query, k=k, ctx=ctx)
+end
+```
 """
-function knn_optimized(tree::ATRIATree, query_point;
-                      k::Int=1,
-                      epsilon::Float64=0.0,
-                      exclude_range::Tuple{Int,Int}=(-1,-1),
-                      track_stats::Bool=false,
-                      ctx::Union{Nothing,SearchContext}=nothing)
+function knn(tree::ATRIATree, query_point;
+            k::Int=1,
+            epsilon::Float64=0.0,
+            exclude_range::Tuple{Int,Int}=(-1,-1),
+            track_stats::Bool=false,
+            ctx::Union{Nothing,SearchContext}=nothing)
     # Create or reuse context
     if ctx === nothing
-        ctx = SearchContext(tree.total_clusters * 2, k)
+        ctx = SearchContext(tree, k)
     end
 
     # Reset context for new query
     reset!(ctx, k)
 
     # Perform search
-    _search_knn_optimized!(tree, query_point, ctx, epsilon, exclude_range)
+    _search_knn!(tree, query_point, ctx, epsilon, exclude_range)
 
     # Extract results
     neighbors = extract_neighbors(ctx)
@@ -311,10 +343,68 @@ function knn_optimized(tree::ATRIATree, query_point;
 end
 
 """
-Internal optimized search function.
+    knn_batch(tree::ATRIATree, queries; k::Int=1, epsilon::Float64=0.0,
+              exclude_range::Tuple{Int,Int}=(-1,-1), track_stats::Bool=false)
+
+Perform k-NN search on multiple query points with automatic context reuse.
+
+# Arguments
+- `tree::ATRIATree`: The ATRIA tree to search
+- `queries`: Iterable of query points (e.g., Vector{Vector{Float64}} or Matrix where each row is a query)
+- `k::Int`: Number of nearest neighbors to find (default: 1)
+- `epsilon::Float64`: Approximation parameter (0.0 = exact search)
+- `exclude_range::Tuple{Int,Int}`: Exclude points in range [first, last] from results
+- `track_stats::Bool`: If true, return statistics for each query
+
+# Returns
+- If `track_stats=false`: Vector of neighbor lists (one per query)
+- If `track_stats=true`: Tuple of (results, stats_list) where each stats contains distance_calcs and f_k
+
+# Example
+```julia
+# Batch search on multiple queries
+queries = [randn(D) for _ in 1:100]
+results = knn_batch(tree, queries, k=10)
+
+# With statistics
+results, stats = knn_batch(tree, queries, k=10, track_stats=true)
+mean_f_k = mean(s.f_k for s in stats)
+```
 """
-function _search_knn_optimized!(tree::ATRIATree, query_point, ctx::SearchContext,
-                               epsilon::Float64, exclude_range::Tuple{Int,Int})
+function knn_batch(tree::ATRIATree, queries;
+                  k::Int=1,
+                  epsilon::Float64=0.0,
+                  exclude_range::Tuple{Int,Int}=(-1,-1),
+                  track_stats::Bool=false)
+    # Pre-allocate context once for all queries
+    ctx = SearchContext(tree, k)
+
+    # Process all queries
+    results = Vector{Vector{Neighbor}}(undef, length(queries))
+
+    if track_stats
+        stats_list = Vector{NamedTuple{(:distance_calcs, :f_k), Tuple{Int, Float64}}}(undef, length(queries))
+        for (i, query) in enumerate(queries)
+            neighbors, stats = knn(tree, query, k=k, epsilon=epsilon,
+                                  exclude_range=exclude_range, track_stats=true, ctx=ctx)
+            results[i] = neighbors
+            stats_list[i] = stats
+        end
+        return (results, stats_list)
+    else
+        for (i, query) in enumerate(queries)
+            results[i] = knn(tree, query, k=k, epsilon=epsilon,
+                           exclude_range=exclude_range, track_stats=false, ctx=ctx)
+        end
+        return results
+    end
+end
+
+"""
+Internal search function.
+"""
+function _search_knn!(tree::ATRIATree, query_point, ctx::SearchContext,
+                     epsilon::Float64, exclude_range::Tuple{Int,Int})
     first, last = exclude_range
 
     # Calculate distance to root center
@@ -339,20 +429,20 @@ function _search_knn_optimized!(tree::ATRIATree, query_point, ctx::SearchContext
         if ctx.high_dist >= si.d_min * (1.0 + epsilon)
             if is_terminal(c)
                 # Terminal node: test points
-                _search_terminal_optimized!(tree, c, si, query_point, ctx, first, last)
+                _search_terminal!(tree, c, si, query_point, ctx, first, last)
             else
                 # Internal node: push children
-                _push_children_optimized!(tree, c, si, query_point, ctx)
+                _push_children!(tree, c, si, query_point, ctx)
             end
         end
     end
 end
 
 """
-Optimized terminal node search.
+Terminal node search.
 """
-@inline function _search_terminal_optimized!(tree::ATRIATree, c::Cluster, si::MutableSearchItem,
-                                            query_point, ctx::SearchContext, first::Int, last::Int)
+@inline function _search_terminal!(tree::ATRIATree, c::Cluster, si::MutableSearchItem,
+                                  query_point, ctx::SearchContext, first::Int, last::Int)
     section_start = c.start
     section_end = c.start + c.length - 1
 
@@ -391,11 +481,11 @@ Optimized terminal node search.
 end
 
 """
-Optimized child cluster pushing.
+Child cluster pushing.
 """
-@inline function _push_children_optimized!(tree::ATRIATree, c::Cluster,
-                                          parent_si::MutableSearchItem,
-                                          query_point, ctx::SearchContext)
+@inline function _push_children!(tree::ATRIATree, c::Cluster,
+                                parent_si::MutableSearchItem,
+                                query_point, ctx::SearchContext)
     # Compute distances to children
     d_left = distance(tree.points, c.left.center, query_point)
     d_right = distance(tree.points, c.right.center, query_point)

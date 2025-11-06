@@ -1,9 +1,12 @@
-# ATRIA nearest neighbor search algorithms
+# Legacy ATRIA search implementation (not optimized)
+# Kept for reference and backward compatibility testing
+# Use the optimized version in search_optimized.jl instead
 
 """
-    knn(tree::ATRIATree, query_point; k::Int=1, epsilon::Float64=0.0, exclude_range::Tuple{Int,Int}=(-1,-1), track_stats::Bool=false)
+    knn_legacy(tree::ATRIATree, query_point; k::Int=1, epsilon::Float64=0.0, exclude_range::Tuple{Int,Int}=(-1,-1), track_stats::Bool=false)
 
-Search for k nearest neighbors using the ATRIA tree.
+Legacy k-NN search implementation (not allocation-optimized).
+For production use, prefer the optimized version in search_optimized.jl.
 
 # Arguments
 - `tree::ATRIATree`: The ATRIA tree to search
@@ -19,13 +22,13 @@ Search for k nearest neighbors using the ATRIA tree.
   - `distance_calcs::Int`: Number of distance calculations performed
   - `f_k::Float64`: Fraction of distance calculations (distance_calcs / N)
 """
-function knn(tree::ATRIATree, query_point; k::Int=1, epsilon::Float64=0.0, exclude_range::Tuple{Int,Int}=(-1,-1), track_stats::Bool=false)
+function knn_legacy(tree::ATRIATree, query_point; k::Int=1, epsilon::Float64=0.0, exclude_range::Tuple{Int,Int}=(-1,-1), track_stats::Bool=false)
     # Initialize sorted neighbor table
     table = SortedNeighborTable(k)
     init_search!(table, k)
 
     # Perform the search
-    distance_calcs = _search_knn!(tree, query_point, table, epsilon, exclude_range)
+    distance_calcs = _search_knn_legacy!(tree, query_point, table, epsilon, exclude_range)
 
     # Return sorted results
     neighbors = finish_search(table)
@@ -41,13 +44,13 @@ function knn(tree::ATRIATree, query_point; k::Int=1, epsilon::Float64=0.0, exclu
 end
 
 """
-    _search_knn!(tree::ATRIATree, query_point, table::SortedNeighborTable, epsilon::Float64, exclude_range::Tuple{Int,Int})
+    _search_knn_legacy!(tree::ATRIATree, query_point, table::SortedNeighborTable, epsilon::Float64, exclude_range::Tuple{Int,Int})
 
-Internal function implementing ATRIA k-NN search using best-first strategy with priority queue.
+Legacy internal search implementation using SortedNeighborTable.
 
 Returns the number of distance calculations performed.
 """
-function _search_knn!(tree::ATRIATree, query_point, table::SortedNeighborTable, epsilon::Float64, exclude_range::Tuple{Int,Int})
+function _search_knn_legacy!(tree::ATRIATree, query_point, table::SortedNeighborTable, epsilon::Float64, exclude_range::Tuple{Int,Int})
     first, last = exclude_range
 
     # Create MinHeap for best-first search (min-heap by d_min)
