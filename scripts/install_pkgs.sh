@@ -134,22 +134,13 @@ else
   fi
 fi
 
-log "Step 6: Adding Julia 1.11"
-log_command "/root/.juliaup/bin/juliaup add 1.11"
-
-log "Step 7: Adding Julia 1.10"
-log_command "/root/.juliaup/bin/juliaup add 1.10"
-
-log "Step 8: Setting default Julia version to 1.10"
-log_command "/root/.juliaup/bin/juliaup default 1.10"
-
-log "Step 9: Enabling channel symlinks"
+log "Step 6: Enabling channel symlinks"
 log_command "/root/.juliaup/bin/juliaup config channelsymlinks true"
 
-log "Step 10: Checking juliaup status"
+log "Step 7: Checking juliaup status"
 log_command "/root/.juliaup/bin/juliaup status"
 
-log "Step 11: Checking for julia symlink"
+log "Step 8: Checking for julia symlink"
 if [ ! -e "/root/.juliaup/bin/julia" ]; then
   log "julia symlink not found, creating workaround symlink"
   # Workaround: juliaup sometimes fails to create the julia symlink
@@ -159,17 +150,17 @@ else
   log "julia symlink already exists"
 fi
 
-log "Step 12: Verifying julia executable"
+log "Step 9: Verifying julia executable"
 log_command "ls -lh /root/.juliaup/bin/julia*"
 
-log "Step 13: Testing julia execution"
+log "Step 10: Testing julia execution"
 if [ -e "/root/.juliaup/bin/julia" ]; then
   log_command "/root/.juliaup/bin/julia --version"
 else
   log_error "julia executable still not found after symlink creation"
 fi
 
-log "Step 14: Final verification"
+log "Step 11: Final verification"
 log "Directory listing of /root/.juliaup/bin/:"
 ls -lha /root/.juliaup/bin/ | tee -a "$LOGFILE"
 
@@ -183,7 +174,7 @@ else
   log_error "juliaup.json not found"
 fi
 
-log "Step 15: Verifying PATH configuration (configured in Step 5)"
+log "Step 12: Verifying PATH configuration (configured in Step 5)"
 if [ -n "$CLAUDE_ENV_FILE" ] && [ -f "$CLAUDE_ENV_FILE" ]; then
   log "SUCCESS: CLAUDE_ENV_FILE is configured and will be loaded by Claude Code"
   log "Julia should be available in PATH for all subsequent bash commands"
