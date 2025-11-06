@@ -2,6 +2,25 @@
 
 This directory contains scripts for profiling the ATRIANeighbors package using representative workloads.
 
+## 💡 Recommended: ProfilingAnalysis.jl
+
+For the most comprehensive profiling (runtime + allocations + categorization + smart recommendations), use the **ProfilingAnalysis.jl** package:
+
+```julia
+# From project root
+using ProfilingAnalysis
+
+# Collect profiles with workload
+runtime = collect_profile_data(() -> my_workload())
+allocs = collect_allocation_profile(() -> my_workload(), sample_rate=0.1)
+
+# Auto-categorize and get recommendations
+categorized = categorize_entries(runtime.entries)
+recs = generate_smart_recommendations(categorized, runtime.total_samples)
+```
+
+See `../ProfilingAnalysis.jl/` and `../PROFILING_IMPROVEMENTS.md` for full documentation.
+
 ## Setup
 
 This directory uses Julia's development environment to depend on local versions of:

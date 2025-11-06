@@ -1,14 +1,17 @@
 """
 ProfilingAnalysis.jl
 
-A generic, reusable profiling analysis tool for Julia code.
+A comprehensive profiling analysis tool for Julia code with support for
+runtime profiling, allocation tracking, and type stability checking.
 
 # Features
-- Collect profile data from any Julia workload
+- Collect runtime profile data from any Julia workload
+- Collect allocation profiles with Profile.Allocs
+- Automatic categorization of hotspots by operation type
+- Context-aware performance recommendations
 - Save/load profiles in JSON format
-- Query profiles by function, file, or pattern
-- Generate summaries and recommendations
 - Compare profiles to track performance changes
+- Type stability checking helpers
 
 # Basic Usage
 
@@ -17,23 +20,27 @@ A generic, reusable profiling analysis tool for Julia code.
 ```julia
 using ProfilingAnalysis
 
-# Collect profile data
+# Collect runtime profile
 profile = collect_profile_data() do
-    # Your workload here
     my_expensive_function()
 end
 
-# Save profile
+# Collect allocation profile
+allocs = collect_allocation_profile(sample_rate=0.1) do
+    my_expensive_function()
+end
+
+# Automatic categorization
+categorized = categorize_entries(profile.entries)
+
+# Smart recommendations
+recs = generate_smart_recommendations(categorized, profile.total_samples)
+
+# Save/load
 save_profile(profile, "myprofile.json")
-
-# Query top hotspots (excluding system code)
-top_10 = query_top_n(profile, 10, filter_fn=e -> !is_system_code(e))
-
-# Summarize
-summarize_profile(profile)
-
-# Compare two profiles
 profile2 = load_profile("myprofile2.json")
+
+# Compare
 compare_profiles(profile, profile2)
 ```
 
@@ -72,6 +79,22 @@ export print_entry_table, summarize_profile, generate_recommendations
 # Comparison
 include("comparison.jl")
 export compare_profiles
+
+# Allocation profiling
+include("allocation.jl")
+export AllocationSite, AllocationProfile,
+       collect_allocation_profile, format_bytes,
+       print_allocation_table, summarize_allocations
+
+# Categorization and smart recommendations
+include("categorization.jl")
+export categorize_entries, default_categories,
+       print_categorized_summary, generate_smart_recommendations,
+       analyze_allocation_patterns
+
+# Type stability helpers
+include("type_stability.jl")
+export check_type_stability_simple, print_type_stability_guide
 
 # CLI interface
 include("cli.jl")
