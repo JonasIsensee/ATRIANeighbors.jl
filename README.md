@@ -1,5 +1,8 @@
 # ATRIANeighbors.jl
 
+[![CI](https://github.com/JonasIsensee/ATRIANeighbors.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/JonasIsensee/ATRIANeighbors.jl/actions/workflows/CI.yml)
+[![codecov](https://codecov.io/gh/JonasIsensee/ATRIANeighbors.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/JonasIsensee/ATRIANeighbors.jl)
+
 Fast k-nearest neighbor search optimized for low-dimensional manifolds embedded in high-dimensional spaces.
 
 ## Overview
