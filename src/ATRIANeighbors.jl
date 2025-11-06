@@ -32,7 +32,7 @@ export range_search, count_range
 
 # Main search implementation (allocation-optimized)
 include("search_optimized.jl")
-export knn, knn_batch, SearchContext
+export knn, knn_batch, knn_batch_parallel, SearchContext
 
 # Brute force reference implementation
 include("brute.jl")

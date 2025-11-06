@@ -1,6 +1,7 @@
 # Point set abstractions for ATRIA algorithm
 
 using LinearAlgebra
+using LoopVectorization
 
 """
     EmbeddedPoint{T} <: AbstractVector{T}
@@ -153,7 +154,7 @@ Optimized to avoid view overhead.
 """
 @inline function _euclidean_distance_row(data::Matrix{T}, row::Int, query) where T
     sum_sq = zero(T)
-    @inbounds @fastmath @simd for j in 1:size(data, 2)
+    @turbo for j in 1:size(data, 2)
         diff = data[row, j] - query[j]
         sum_sq += diff * diff
     end

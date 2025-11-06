@@ -1,5 +1,7 @@
 # Distance metrics for ATRIA algorithm
 
+using LoopVectorization
+
 """
     Metric
 
@@ -30,7 +32,7 @@ Compute full Euclidean distance between two points.
 """
 @inline function distance(::EuclideanMetric, p1, p2)
     sum_sq = 0.0
-    @inbounds @fastmath @simd for i in eachindex(p1)
+    @turbo for i in eachindex(p1)
         diff = p1[i] - p2[i]
         sum_sq += diff * diff
     end
@@ -84,7 +86,7 @@ Compute squared Euclidean distance between two points.
 """
 @inline function distance(::SquaredEuclideanMetric, p1, p2)
     sum_sq = 0.0
-    @inbounds @fastmath @simd for i in eachindex(p1)
+    @turbo for i in eachindex(p1)
         diff = p1[i] - p2[i]
         sum_sq += diff * diff
     end
