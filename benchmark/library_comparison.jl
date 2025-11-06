@@ -90,7 +90,7 @@ function build_tree_with_config(config::LibraryBenchmarkConfig, data::Matrix{Flo
         end
         # HNSW expects data in D×N format
         data_transposed = Matrix(data')
-        return HierarchicalNSW(data_transposed, config.hnsw_M, config.hnsw_ef_construction)
+        return HierarchicalNSW(data_transposed; M=config.hnsw_M, efConstruction=config.hnsw_ef_construction, ef=config.hnsw_ef_search)
     else
         # NearestNeighbors.jl algorithms expect D×N format
         data_transposed = Matrix(data')

@@ -84,7 +84,10 @@ function plot_build_time_vs_n(results::Vector{BenchmarkResult};
     )
 
     # Plot each group
-    for ((alg, dataset), group) in sort(collect(groups))
+    sorted_keys = sort(collect(keys(groups)))
+    for key in sorted_keys
+        (alg, dataset) = key
+        group = groups[key]
         sort!(group, by=r -> r.N)
         N_vals = [r.N for r in group]
         times = [r.build_time for r in group]
@@ -145,7 +148,10 @@ function plot_build_time_vs_d(results::Vector{BenchmarkResult};
     )
 
     # Plot each group
-    for ((alg, dataset), group) in sort(collect(groups))
+    sorted_keys = sort(collect(keys(groups)))
+    for key in sorted_keys
+        (alg, dataset) = key
+        group = groups[key]
         sort!(group, by=r -> r.D)
         D_vals = [r.D for r in group]
         times = [r.build_time for r in group]
@@ -211,7 +217,10 @@ function plot_query_time_vs_n(results::Vector{BenchmarkResult};
     )
 
     # Plot each group
-    for ((alg, dataset), group) in sort(collect(groups))
+    sorted_keys = sort(collect(keys(groups)))
+    for key in sorted_keys
+        (alg, dataset) = key
+        group = groups[key]
         sort!(group, by=r -> r.N)
         N_vals = [r.N for r in group]
         times = [r.query_time for r in group]
@@ -277,7 +286,10 @@ function plot_query_time_vs_k(results::Vector{BenchmarkResult};
     )
 
     # Plot each group
-    for ((alg, dataset), group) in sort(collect(groups))
+    sorted_keys = sort(collect(keys(groups)))
+    for key in sorted_keys
+        (alg, dataset) = key
+        group = groups[key]
         sort!(group, by=r -> r.k)
         k_vals = [r.k for r in group]
         times = [r.query_time for r in group]
@@ -360,7 +372,10 @@ function plot_speedup_factor(results::Vector{BenchmarkResult},
     hline!(plt, [1.0], linestyle=:dash, color=:black, label="Baseline ($baseline_algorithm)")
 
     # Plot each group
-    for ((alg, dataset), group) in sort(collect(groups))
+    sorted_keys = sort(collect(keys(groups)))
+    for key in sorted_keys
+        (alg, dataset) = key
+        group = groups[key]
         sort!(group, by=x -> x[1])
         N_vals = [x[1] for x in group]
         speedup_vals = [x[2] for x in group]
@@ -421,7 +436,10 @@ function plot_memory_usage(results::Vector{BenchmarkResult};
     )
 
     # Plot each group
-    for ((alg, dataset), group) in sort(collect(groups))
+    sorted_keys = sort(collect(keys(groups)))
+    for key in sorted_keys
+        (alg, dataset) = key
+        group = groups[key]
         sort!(group, by=r -> r.N)
         N_vals = [r.N for r in group]
         memory = [r.memory_mb for r in group]
@@ -482,7 +500,10 @@ function plot_pruning_effectiveness(results::Vector{BenchmarkResult};
     )
 
     # Plot each group
-    for ((alg, dataset), group) in sort(collect(groups))
+    sorted_keys = sort(collect(keys(groups)))
+    for key in sorted_keys
+        (alg, dataset) = key
+        group = groups[key]
         sort!(group, by=r -> r.N)
         N_vals = [r.N for r in group]
         # Percentage saved = (1 - actual/total) * 100
