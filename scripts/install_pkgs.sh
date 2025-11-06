@@ -66,7 +66,7 @@ log "First 10 lines:"
 head -10 juliaup.sh | tee -a "$LOGFILE"
 
 log "Step 3: Running juliaup installer"
-log_command "sh juliaup.sh -y --default-channel release"
+log_command "sh juliaup.sh -y"
 if [ $? -ne 0 ]; then
   log_error "Juliaup installer failed"
   exit 1
@@ -80,9 +80,6 @@ else
   log_error "juliaup binary not found at /root/.juliaup/bin/juliaup"
   exit 1
 fi
-
-log "Step 5: Adding Julia release channel"
-log_command "/root/.juliaup/bin/juliaup add release"
 
 log "Step 6: Adding Julia 1.11"
 log_command "/root/.juliaup/bin/juliaup add 1.11"
