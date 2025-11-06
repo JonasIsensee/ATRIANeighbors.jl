@@ -42,9 +42,6 @@ log_command() {
   return 0
 }
 
-# Enable debug mode for detailed execution trace
-set -x
-
 log "========================================="
 log "Julia Installation Script Starting"
 log "========================================="
@@ -192,6 +189,3 @@ log "========================================="
 log "Check logs at:"
 log "  Main log: $LOGFILE"
 log "  Error log: $ERRORLOG"
-
-# Disable debug mode
-set +x
