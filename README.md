@@ -105,7 +105,9 @@ tree = ATRIA(ps, min_points=64)
 
 # Find 10 nearest neighbors
 query = randn(20)
-indices, distances = knn(tree, query, k=10)
+neighbors = knn(tree, query, k=10)
+indices = [n.index for n in neighbors]
+distances = [n.distance for n in neighbors]
 ```
 
 ### Batch Queries (Optimized)
@@ -127,7 +129,7 @@ ps = EmbeddedTimeSeries(signal, dim=7, delay=5)
 tree = ATRIA(ps, min_points=64)
 
 # Find neighbors in embedded space
-indices, dists = knn(tree, 1000, k=10)  # neighbors of point 1000
+neighbors = knn(tree, 1000, k=10)  # neighbors of point 1000
 ```
 
 ### Range Search
