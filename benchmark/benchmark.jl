@@ -58,7 +58,7 @@ function cmd_quick()
     println("-"^80)
     data_uniform = randn(N, D)
     ps_uniform = PointSet(data_uniform, EuclideanMetric())
-    tree_uniform = ATRIA(ps_uniform, min_points=10)
+    tree_uniform = ATRIATree(ps_uniform, min_points=10)
     query_uniform = randn(D)
 
     _, stats_uniform = ATRIANeighbors.knn(tree_uniform, query_uniform, k=k, track_stats=true)
@@ -88,7 +88,7 @@ function cmd_quick()
     end
 
     ps_clustered = PointSet(data_clustered, EuclideanMetric())
-    tree_clustered = ATRIA(ps_clustered, min_points=10)
+    tree_clustered = ATRIATree(ps_clustered, min_points=10)
     query_clustered = data_clustered[1, :] + randn(D) * 0.1
 
     _, stats_clustered = ATRIANeighbors.knn(tree_clustered, query_clustered, k=k, track_stats=true)
@@ -118,7 +118,7 @@ function cmd_quick()
     end
 
     ps_very_clustered = PointSet(data_very_clustered, EuclideanMetric())
-    tree_very_clustered = ATRIA(ps_very_clustered, min_points=10)
+    tree_very_clustered = ATRIATree(ps_very_clustered, min_points=10)
     query_very_clustered = data_very_clustered[1, :] + randn(D) * 0.05
 
     _, stats_very_clustered = ATRIANeighbors.knn(tree_very_clustered, query_very_clustered, k=k, track_stats=true)
@@ -182,8 +182,8 @@ function cmd_readme()
     # ATRIA
     println("ATRIA:")
     ps = PointSet(data, EuclideanMetric())
-    atria_build = @benchmark ATRIA($ps, min_points=64) samples=5
-    tree_atria = ATRIA(ps, min_points=64)
+    atria_build = @benchmark ATRIATree($ps, min_points=64) samples=5
+    tree_atria = ATRIATree(ps, min_points=64)
 
     function atria_queries()
         for i in 1:n_queries
@@ -292,7 +292,7 @@ function cmd_profile_alloc()
     println("\nDataset: N=$N, D=$D")
     println("Building ATRIA tree...")
     ps = PointSet(data, EuclideanMetric())
-    tree = ATRIA(ps, min_points=10)
+    tree = ATRIATree(ps, min_points=10)
 
     query_point = randn(D)
     k = 10

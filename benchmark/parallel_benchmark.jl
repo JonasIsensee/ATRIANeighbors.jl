@@ -41,7 +41,7 @@ end
 ps = PointSet(data, EuclideanMetric())
 
 println("Building ATRIA tree...")
-tree = ATRIA(ps, min_points=64)
+tree = ATRIATree(ps, min_points=64)
 println("  Total clusters: $(tree.total_clusters)")
 println("  Terminal nodes: $(tree.terminal_nodes)")
 println()

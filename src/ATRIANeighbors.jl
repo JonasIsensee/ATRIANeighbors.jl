@@ -20,7 +20,7 @@ export getpoint
 
 # ATRIA tree construction
 include("tree.jl")
-export ATRIATree, ATRIA
+export ATRIATree
 export tree_depth, count_nodes, average_terminal_size, print_tree_stats
 
 # MinHeap for efficient priority queue operations

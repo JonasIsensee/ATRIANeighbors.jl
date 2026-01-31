@@ -50,7 +50,7 @@ N = 100
 D = 10
 data = rand(N, D)
 ps = PointSet(data, EuclideanMetric())
-tree = ATRIA(ps, min_points=10)
+tree = ATRIATree(ps, min_points=10)
 query = rand(D)
 
 println()
@@ -99,7 +99,7 @@ println("TREE CONSTRUCTION")
 println("=" ^ 80)
 println()
 
-check_type_stability(ATRIA, ps; name="ATRIA(PointSet)")
+check_type_stability(ATRIA, ps; name="ATRIATree(PointSet)")
 
 println("=" ^ 80)
 println("SEARCH OPERATIONS")

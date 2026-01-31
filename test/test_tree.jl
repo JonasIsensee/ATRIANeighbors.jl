@@ -131,7 +131,7 @@ using Random
         data = randn(MersenneTwister(42), 10, 2)
         ps = PointSet(data)
 
-        tree = ATRIA(ps, min_points=3)
+        tree = ATRIATree(ps, min_points=3)
 
         @test tree.root isa Cluster
         @test length(tree.permutation_table) == 10
@@ -144,7 +144,7 @@ using Random
         data = Float64[1 1; 2 2; 3 3; 4 4; 5 5]
         ps = PointSet(data)
 
-        tree = ATRIA(ps, min_points=2)
+        tree = ATRIATree(ps, min_points=2)
 
         # All original indices should be in permutation
         indices = sort([n.index for n in tree.permutation_table])
@@ -158,8 +158,8 @@ using Random
         data = randn(MersenneTwister(123), 100, 3)
         ps = PointSet(data)
 
-        tree_large_min = ATRIA(ps, min_points=50)
-        tree_small_min = ATRIA(ps, min_points=10)
+        tree_large_min = ATRIATree(ps, min_points=50)
+        tree_small_min = ATRIATree(ps, min_points=10)
 
         # Smaller min_points should create more splits
         @test tree_small_min.total_clusters > tree_large_min.total_clusters
@@ -174,7 +174,7 @@ using Random
             data = randn(MersenneTwister(42), 100, D)
             ps = PointSet(data)
 
-            tree = ATRIA(ps, min_points=10)
+            tree = ATRIATree(ps, min_points=10)
 
             @test size(tree.points) == (100, D)
             @test tree.total_clusters > 0
@@ -186,7 +186,7 @@ using Random
         data = Float64[1 2 3]
         ps = PointSet(data)
 
-        tree = ATRIA(ps, min_points=10)
+        tree = ATRIATree(ps, min_points=10)
 
         @test tree.total_clusters == 1
         @test tree.terminal_nodes == 1
@@ -200,7 +200,7 @@ using Random
         data = Float64[1 1; 2 2; 3 3]
         ps = PointSet(data)
 
-        tree = ATRIA(ps, min_points=10)
+        tree = ATRIATree(ps, min_points=10)
 
         @test tree.terminal_nodes == 1
         @test is_terminal(tree.root)
@@ -213,18 +213,18 @@ using Random
         ps = PointSet(data)
 
         # Invalid min_points
-        @test_throws ArgumentError ATRIA(ps, min_points=0)
-        @test_throws ArgumentError ATRIA(ps, min_points=-1)
+        @test_throws ArgumentError ATRIATree(ps, min_points=0)
+        @test_throws ArgumentError ATRIATree(ps, min_points=-1)
 
         # Valid construction
-        tree = ATRIA(ps, min_points=1)
+        tree = ATRIATree(ps, min_points=1)
         @test tree isa ATRIATree
     end
 
     @testset "Tree invariants" begin
         data = randn(MersenneTwister(42), 50, 3)
         ps = PointSet(data)
-        tree = ATRIA(ps, min_points=5)
+        tree = ATRIATree(ps, min_points=5)
 
         # Verify tree structure recursively
         function verify_cluster(cluster::Cluster, perm::Vector{Neighbor})
@@ -264,8 +264,8 @@ using Random
         data = randn(MersenneTwister(42), 100, 3)
         ps = PointSet(data)
 
-        tree_shallow = ATRIA(ps, min_points=50)
-        tree_deep = ATRIA(ps, min_points=5)
+        tree_shallow = ATRIATree(ps, min_points=50)
+        tree_deep = ATRIATree(ps, min_points=5)
 
         depth_shallow = tree_depth(tree_shallow)
         depth_deep = tree_depth(tree_deep)
@@ -276,14 +276,14 @@ using Random
         # Single point has depth 0
         data_single = Float64[1 2]
         ps_single = PointSet(data_single)
-        tree_single = ATRIA(ps_single)
+        tree_single = ATRIATree(ps_single)
         @test tree_depth(tree_single) == 0
     end
 
     @testset "count_nodes" begin
         data = randn(MersenneTwister(42), 50, 3)
         ps = PointSet(data)
-        tree = ATRIA(ps, min_points=10)
+        tree = ATRIATree(ps, min_points=10)
 
         @test count_nodes(tree) == tree.total_clusters
         @test count_nodes(tree) >= tree.terminal_nodes
@@ -293,7 +293,7 @@ using Random
         data = randn(MersenneTwister(42), 100, 3)
         ps = PointSet(data)
 
-        tree = ATRIA(ps, min_points=10)
+        tree = ATRIATree(ps, min_points=10)
         avg_size = average_terminal_size(tree)
 
         @test avg_size > 0.0
@@ -302,14 +302,14 @@ using Random
         # Single terminal node
         data_small = Float64[1 1; 2 2; 3 3]
         ps_small = PointSet(data_small)
-        tree_small = ATRIA(ps_small, min_points=10)
+        tree_small = ATRIATree(ps_small, min_points=10)
         @test average_terminal_size(tree_small) == 3.0
     end
 
     @testset "print_tree_stats" begin
         data = randn(MersenneTwister(42), 50, 5)
         ps = PointSet(data)
-        tree = ATRIA(ps, min_points=8)
+        tree = ATRIATree(ps, min_points=8)
 
         # Should not error
         io = IOBuffer()
@@ -326,7 +326,7 @@ using Random
         data = sin.(0.1 * (1:100)) + 0.1 * randn(MersenneTwister(42), 100)
         ps = EmbeddedTimeSeries(data, 5, 2)
 
-        tree = ATRIA(ps, min_points=10)
+        tree = ATRIATree(ps, min_points=10)
 
         n_embedded, dim = size(ps)
         @test size(tree.points) == (n_embedded, dim)
@@ -340,15 +340,15 @@ using Random
         ps = PointSet(data)
 
         # Same seed should give same tree
-        tree1 = ATRIA(ps, min_points=10, rng=MersenneTwister(42))
-        tree2 = ATRIA(ps, min_points=10, rng=MersenneTwister(42))
+        tree1 = ATRIATree(ps, min_points=10, rng=MersenneTwister(42))
+        tree2 = ATRIATree(ps, min_points=10, rng=MersenneTwister(42))
 
         @test tree1.root.center == tree2.root.center
         @test tree1.total_clusters == tree2.total_clusters
         @test tree1.terminal_nodes == tree2.terminal_nodes
 
         # Different seed should (likely) give different tree
-        tree3 = ATRIA(ps, min_points=10, rng=MersenneTwister(123))
+        tree3 = ATRIATree(ps, min_points=10, rng=MersenneTwister(123))
         @test tree1.root.center != tree3.root.center || tree1.total_clusters != tree3.total_clusters
     end
 
@@ -357,7 +357,7 @@ using Random
         data = randn(MersenneTwister(42), 1000, 10)
         ps = PointSet(data)
 
-        tree = ATRIA(ps, min_points=32)
+        tree = ATRIATree(ps, min_points=32)
 
         @test tree.total_clusters > 10
         @test tree.terminal_nodes > 5
@@ -380,7 +380,7 @@ using Random
         ]
         ps = PointSet(data)
 
-        tree = ATRIA(ps, min_points=2)
+        tree = ATRIATree(ps, min_points=2)
 
         # With well-separated clusters, tree should create meaningful divisions
         @test tree.total_clusters > 1

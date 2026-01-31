@@ -5,7 +5,7 @@ using Random
 Random.seed!(43)
 data = rand(50, 3)
 ps = PointSet(data, EuclideanMetric())
-tree = ATRIA(ps, min_points=8)
+tree = ATRIATree(ps, min_points=8)
 
 query = rand(3)
 

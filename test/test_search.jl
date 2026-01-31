@@ -11,7 +11,7 @@ using Random
         Random.seed!(42)
         data = rand(100, 2)
         ps = PointSet(data, EuclideanMetric())
-        tree = ATRIA(ps, min_points=10)
+        tree = ATRIATree(ps, min_points=10)
 
         # Test k=1
         query = rand(2)
@@ -33,7 +33,7 @@ using Random
         Random.seed!(43)
         data = rand(50, 3)
         ps = PointSet(data, EuclideanMetric())
-        tree = ATRIA(ps, min_points=8)
+        tree = ATRIATree(ps, min_points=8)
 
         query = rand(3)
         atria_results = knn(tree, query, k=5)
@@ -57,7 +57,7 @@ using Random
         Random.seed!(44)
         data = rand(200, 4)
         ps = PointSet(data, EuclideanMetric())
-        tree = ATRIA(ps, min_points=15)
+        tree = ATRIATree(ps, min_points=15)
 
         for trial in 1:10
             query = rand(4)
@@ -82,7 +82,7 @@ using Random
         Random.seed!(45)
         data = rand(500, 5)
         ps = PointSet(data, EuclideanMetric())
-        tree = ATRIA(ps, min_points=30)
+        tree = ATRIATree(ps, min_points=30)
 
         query = rand(5)
         atria_results = knn(tree, query, k=50)
@@ -106,7 +106,7 @@ end
     Random.seed!(46)
     data = rand(100, 2)
     ps = PointSet(data, EuclideanMetric())
-    tree = ATRIA(ps, min_points=10)
+    tree = ATRIATree(ps, min_points=10)
 
     query = rand(2)
 
@@ -130,7 +130,7 @@ end
         Random.seed!(47)
         data = rand(100, 2)
         ps = PointSet(data, EuclideanMetric())
-        tree = ATRIA(ps, min_points=10)
+        tree = ATRIATree(ps, min_points=10)
 
         query = rand(2)
         radius = 0.3
@@ -159,7 +159,7 @@ end
     Random.seed!(48)
     data = rand(100, 3)
     ps = PointSet(data, EuclideanMetric())
-    tree = ATRIA(ps, min_points=10)
+    tree = ATRIATree(ps, min_points=10)
 
     query = rand(3)
     radius = 0.5
@@ -174,7 +174,7 @@ end
     Random.seed!(49)
     data = rand(200, 20)
     ps = PointSet(data, EuclideanMetric())
-    tree = ATRIA(ps, min_points=20)
+    tree = ATRIATree(ps, min_points=20)
 
     query = rand(20)
     atria_results = knn(tree, query, k=10)
@@ -196,7 +196,7 @@ end
     Random.seed!(50)
     data = rand(100, 3)
     ps = PointSet(data, MaximumMetric())
-    tree = ATRIA(ps, min_points=10)
+    tree = ATRIATree(ps, min_points=10)
 
     query = rand(3)
     atria_results = knn(tree, query, k=5)
@@ -221,7 +221,7 @@ end
     tau = 1  # embedding delay
 
     ps = EmbeddedTimeSeries(ts, m, tau, EuclideanMetric())
-    tree = ATRIA(ps, min_points=15)
+    tree = ATRIATree(ps, min_points=15)
 
     query = rand(m)
     atria_results = knn(tree, query, k=10)

@@ -463,9 +463,9 @@ function build_tree!(
 end
 
 """
-    ATRIA(points::AbstractPointSet; min_points::Int=64, rng::AbstractRNG=Random.GLOBAL_RNG) -> ATRIATree
+    ATRIATree(points::AbstractPointSet; min_points::Int=64, rng::AbstractRNG=Random.GLOBAL_RNG) -> ATRIATree
 
-Construct an ATRIA tree for efficient nearest neighbor search.
+Construct an ATRIA tree for efficient nearest neighbor search from a point set.
 
 # Arguments
 - `points`: Point set to index (PointSet or EmbeddedTimeSeries)
@@ -477,14 +477,19 @@ Construct an ATRIA tree for efficient nearest neighbor search.
 
 # Example
 ```julia
-data = randn(1000, 10)  # 1000 points in 10D
-ps = PointSet(data)
-tree = ATRIA(ps, min_points=32)
+# Direct construction from matrix
+data = randn(1000, 10)
+tree = ATRIATree(data)
+
+# Advanced: custom point set with time-delay embedding
+signal = randn(5000)
+ps = EmbeddedTimeSeries(signal, dim=3, delay=5)
+tree = ATRIATree(ps, min_points=32)
 ```
 """
-function ATRIA(points::AbstractPointSet;
-               min_points::Int=64,
-               rng::AbstractRNG=Random.GLOBAL_RNG)
+function ATRIATree(points::AbstractPointSet;
+                   min_points::Int=64,
+                   rng::AbstractRNG=Random.GLOBAL_RNG)
 
     if min_points < 1
         throw(ArgumentError("min_points must be >= 1, got $min_points"))
@@ -504,6 +509,42 @@ function ATRIA(points::AbstractPointSet;
 
     return ATRIATree(root, permutation, points, min_points,
                      total_clusters, terminal_nodes)
+end
+
+"""
+    ATRIATree(data::Matrix; metric::Metric=EuclideanMetric(), min_points::Int=64, rng::AbstractRNG=Random.GLOBAL_RNG) -> ATRIATree
+
+Construct an ATRIA tree directly from a data matrix (convenience constructor).
+
+Creates a PointSet internally and builds the tree. For advanced use cases like
+time-delay embeddings, construct an EmbeddedTimeSeries first and use the
+AbstractPointSet constructor.
+
+# Arguments
+- `data`: N × D matrix where each row is a point
+- `metric`: Distance metric to use (default: Euclidean)
+- `min_points`: Minimum points per cluster before subdivision stops (default: 64)
+- `rng`: Random number generator for center selection (default: global RNG)
+
+# Returns
+- `ATRIATree`: Constructed tree ready for search queries
+
+# Example
+```julia
+# Simple: construct with default Euclidean metric
+data = randn(1000, 10)
+tree = ATRIATree(data)
+
+# With custom metric and parameters
+tree = ATRIATree(data, metric=MaximumMetric(), min_points=32)
+```
+"""
+function ATRIATree(data::Matrix{T};
+                   metric::Metric=EuclideanMetric(),
+                   min_points::Int=64,
+                   rng::AbstractRNG=Random.GLOBAL_RNG) where T
+    ps = PointSet(data, metric)
+    return ATRIATree(ps, min_points=min_points, rng=rng)
 end
 
 # Tree inspection utilities

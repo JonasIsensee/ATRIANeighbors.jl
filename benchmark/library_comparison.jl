@@ -83,7 +83,7 @@ Build a search structure based on the algorithm in config.
 function build_tree_with_config(config::LibraryBenchmarkConfig, data::Matrix{Float64})
     if config.algorithm == :ATRIA
         ps = PointSet(data, EuclideanMetric())
-        return ATRIA(ps, min_points=config.min_points)
+        return ATRIATree(ps, min_points=config.min_points)
     elseif config.algorithm == :HNSW
         if !HNSW_AVAILABLE
             error("HNSW.jl not available")

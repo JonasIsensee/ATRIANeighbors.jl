@@ -58,10 +58,10 @@ end
 Run the complete benchmark to reproduce this table:
 
 ```bash
-julia --project=. benchmark/readme_benchmark.jl
+julia --project=. benchmark/benchmark.jl readme
 ```
 
-See [`benchmark/readme_benchmark.jl`](benchmark/readme_benchmark.jl) for the full comparison script including all algorithms and timing methodology.
+See [`benchmark/readme_benchmark.jl`](benchmark/benchmark.jl readme) for the full comparison script including all algorithms and timing methodology.
 
 ### Scaling with Fractal Dimension
 
@@ -99,9 +99,8 @@ using ATRIANeighbors
 # Create data (N points × D dimensions)
 data = randn(10000, 20)
 
-# Build ATRIA tree
-ps = PointSet(data, EuclideanMetric())
-tree = ATRIA(ps, min_points=64)
+# Build ATRIA tree (simple: directly from matrix)
+tree = ATRIATree(data)
 
 # Find 10 nearest neighbors
 query = randn(20)
@@ -126,7 +125,7 @@ results = [knn(tree, queries[i,:], k=10, ctx=ctx) for i in 1:1000]
 # Time-delay embedding (memory efficient)
 signal = randn(50000)
 ps = EmbeddedTimeSeries(signal, dim=7, delay=5)
-tree = ATRIA(ps, min_points=64)
+tree = ATRIATree(ps, min_points=64)
 
 # Find neighbors in embedded space
 neighbors = knn(tree, 1000, k=10)  # neighbors of point 1000
@@ -149,12 +148,14 @@ count = count_range(tree, query, radius=0.5)
 
 ```julia
 # Maximum (Chebyshev) metric
-ps = PointSet(data, MaximumMetric())
-tree = ATRIA(ps)
+tree = ATRIATree(data, metric=MaximumMetric())
 
 # Exponentially weighted Euclidean (decay factor 0 < λ ≤ 1)
-ps = PointSet(data, ExponentiallyWeightedEuclidean(0.9))
-tree = ATRIA(ps)
+tree = ATRIATree(data, metric=ExponentiallyWeightedEuclidean(0.9))
+
+# Advanced: explicit PointSet for custom configurations
+ps = PointSet(data, MaximumMetric())
+tree = ATRIATree(ps, min_points=32)
 ```
 
 ## Algorithm Details
@@ -188,7 +189,8 @@ During search, a priority queue enables best-first traversal:
 ## API Reference
 
 ### Tree Construction
-- `ATRIA(ps; min_points=64)` - Build tree from point set
+- `ATRIATree(data::Matrix; metric=EuclideanMetric(), min_points=64)` - Build tree from matrix (simple)
+- `ATRIATree(ps::AbstractPointSet; min_points=64)` - Build tree from point set (advanced)
 - `PointSet(data, metric)` - Standard point set from matrix
 - `EmbeddedTimeSeries(signal; dim, delay=1, metric=EuclideanMetric())` - Time-delay embedding
 

@@ -31,7 +31,7 @@ rng = MersenneTwister(42)
 N, D = 100, 10
 data = generate_dataset(:gaussian_mixture, N, D, rng=rng)
 ps = PointSet(data, EuclideanMetric())
-tree = ATRIA(ps, min_points=10)
+tree = ATRIATree(ps, min_points=10)
 query = data[1, :]
 
 println("Checking type stability of key functions...")
@@ -99,7 +99,7 @@ data_large = generate_dataset(:gaussian_mixture, N_large, D_large, rng=rng)
 ps_large = PointSet(data_large, EuclideanMetric())
 
 println("Building ATRIA tree...")
-@time tree_large = ATRIA(ps_large, min_points=20)
+@time tree_large = ATRIATree(ps_large, min_points=20)
 println("  Total clusters: $(tree_large.total_clusters)")
 println("  Terminal nodes: $(tree_large.terminal_nodes)")
 println()

@@ -5,7 +5,7 @@ data = Float64[1 2 3]
 ps = PointSet(data)
 
 println("Building tree for single point...")
-tree = ATRIA(ps, min_points=10)
+tree = ATRIATree(ps, min_points=10)
 
 println("Total clusters: ", tree.total_clusters)
 println("Terminal nodes: ", tree.terminal_nodes)

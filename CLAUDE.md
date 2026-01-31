@@ -213,10 +213,15 @@ All point sets expose:
 ```julia
 using ATRIANeighbors
 
+# ✅ GOOD: Simple usage with matrix data
+data = randn(1000, 10)
+tree = ATRIATree(data)
+neighbors = knn(tree, query, k=10)
+
 # ✅ GOOD: Time series with delay embedding (low intrinsic dimension)
 ts = load_lorenz_attractor()  # Chaotic time series
 ps = EmbeddedTimeSeries(ts, dim=3, delay=10)
-tree = ATRIA(ps)
+tree = ATRIATree(ps)
 neighbors = knn(tree, query, k=10)  # 3x faster than brute force
 
 # ❌ BAD: Random high-dimensional data
