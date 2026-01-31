@@ -281,13 +281,4 @@ When implementing search, verify results match exactly against this test data.
 
 4. **Distance metric compatibility**: Never use SquaredEuclideanMetric with ATRIA tree search - it violates triangle inequality. Only use it with brute force.
 
-## Reference Materials
-
-The `materials/` directory contains the original C++ implementation:
-- **`materials/NNSearcher/nearneigh_search.h`**: Main ATRIA algorithm (939 lines, heavily commented)
-- **`materials/NNSearcher/nn_aux.h`**: Auxiliary structures matching our `structures.jl`
-- **`materials/NNSearcher/metric.h`**: Distance metrics with partial calculation
-- **`materials/NNSearcher/point_set.h`**: Point set abstractions
-
-See `MATERIALS_OVERVIEW.md` for detailed analysis of the C++ implementation.
 - NEVER edit the manifest file manually.
