@@ -4,14 +4,23 @@ Comprehensive benchmarking suite for evaluating ATRIANeighbors.jl performance ag
 
 ## Quick Start
 
-### Installation
+### Setup
 
-Install dependencies:
+First, clone the repository and set up the benchmark environment:
 
 ```bash
+# Clone the repository
+git clone https://github.com/JonasIsensee/ATRIANeighbors.jl
+cd ATRIANeighbors.jl
+
+# Navigate to the benchmark directory
 cd benchmark
-julia --project=. -e 'using Pkg; Pkg.instantiate()'
+
+# Install dependencies and link local ATRIANeighbors package
+julia --project=. -e 'using Pkg; Pkg.instantiate(); Pkg.develop(path="..")'
 ```
+
+**Important:** The `Pkg.develop(path="..")` step ensures the benchmark uses your local ATRIANeighbors source code rather than trying to fetch from a package registry. This is required for running benchmarks from the repository.
 
 ### Run Benchmarks
 
@@ -179,8 +188,12 @@ ATRIA may be slower on:
 ### Running from Julia REPL
 
 ```julia
+# Start Julia from the benchmark/ directory with the benchmark project
+# cd benchmark
+# julia --project=.
+
 # Load library comparison framework
-include("benchmark/library_comparison.jl")
+include("library_comparison.jl")
 
 # Custom benchmark
 results = run_comprehensive_library_comparison(
@@ -208,7 +221,8 @@ Results are automatically cached to avoid re-running expensive computations:
 ### Generating Plots
 
 ```julia
-include("benchmark/utils/plotting.jl")
+# From benchmark/ directory in Julia REPL
+include("utils/plotting.jl")
 
 # Individual plots
 plot_query_time_vs_n(results, fixed_D=20, fixed_k=10)
@@ -260,9 +274,17 @@ julia --project=. benchmark.jl compare quick  # Use quick mode
 Use caching and run incrementally. Results are cached automatically.
 
 ### Missing Dependencies
-Reinstall:
+Reinstall dependencies and ensure local package is linked:
 ```bash
-julia --project=. -e 'using Pkg; Pkg.instantiate()'
+# Make sure you're in the benchmark/ directory
+julia --project=. -e 'using Pkg; Pkg.instantiate(); Pkg.develop(path="..")'
+```
+
+### Package Load Error
+If you see errors like `ATRIANeighbors not found` or version mismatches, ensure the local package is properly linked:
+```bash
+# From the benchmark/ directory
+julia --project=. -e 'using Pkg; Pkg.develop(path="..")'
 ```
 
 ### Command Not Found

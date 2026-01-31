@@ -55,13 +55,22 @@ function generate_lorenz(N; σ=10.0, ρ=28.0, β=8/3, dt=0.01)
 end
 ```
 
-Run the complete benchmark to reproduce this table:
+To run the complete benchmark and reproduce this table:
 
 ```bash
-julia --project=. benchmark/benchmark.jl readme
+# Clone the repository
+git clone https://github.com/JonasIsensee/ATRIANeighbors.jl
+cd ATRIANeighbors.jl
+
+# Set up benchmark environment (from repository root)
+cd benchmark
+julia --project=. -e 'using Pkg; Pkg.instantiate(); Pkg.develop(path="..")'
+
+# Run the benchmark
+julia --project=. benchmark.jl readme
 ```
 
-See [`benchmark/readme_benchmark.jl`](benchmark/benchmark.jl readme) for the full comparison script including all algorithms and timing methodology.
+See [`benchmark/README.md`](benchmark/README.md) for the full benchmark suite documentation.
 
 ### Scaling with Fractal Dimension
 
