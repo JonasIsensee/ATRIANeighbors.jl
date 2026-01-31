@@ -89,6 +89,8 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
 # Install Claude
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 
+RUN npm install -g @github/copilot@prerelease
+
 # Install julia
 RUN curl -fsSL https://install.julialang.org > juliaup.sh
 RUN sh juliaup.sh -y

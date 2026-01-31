@@ -15,6 +15,8 @@ Or with custom parameters:
 using Pkg
 Pkg.activate(@__DIR__)
 
+using Base.Threads
+
 @info "Loading library comparison framework..."
 include("library_comparison.jl")
 
@@ -89,12 +91,16 @@ function run_full_benchmark(; mode=:standard)
     println("="^80)
 
     # Print top performers
-    println("\nTop Performers (by query time):")
+    println("Top Performers (by query time):")
     println("-"^80)
     top_results = sort(results, by=r->r.query_time)[1:min(10, length(results))]
     for (i, r) in enumerate(top_results)
-        println(@sprintf("%2d. %-10s %-15s N=%-6d D=%-3d k=%-3d Query=%.4fms",
-                        i, r.algorithm, r.dataset_type, r.N, r.D, r.k, r.query_time*1000))
+        qmode = get(r.metadata, "query_mode", :single)
+        threading = get(r.metadata, "threading", :single)
+        threads = get(r.metadata, "threads_used", Threads.nthreads())
+        println(@sprintf("%2d. %-10s %-15s N=%-6d D=%-3d k=%-3d mode=%-6s thr=%-5s threads=%-2d Query=%.4fms",
+                        i, r.algorithm, r.dataset_type, r.N, r.D, r.k,
+                        string(qmode), string(threading), threads, r.query_time*1000))
     end
 
     println("\n" * "="^80)

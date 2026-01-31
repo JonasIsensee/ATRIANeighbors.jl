@@ -1,178 +1,31 @@
 # Allocation-optimized ATRIA search implementation
-
-"""
-    MutableSearchItem
-
-Mutable version of SearchItem for object pooling.
-"""
-mutable struct MutableSearchItem
-    cluster::Cluster
-    dist::Float64
-    dist_brother::Float64
-    d_min::Float64
-    d_max::Float64
-
-    MutableSearchItem() = new()
-end
-
-# Priority queue ordering
-Base.isless(a::MutableSearchItem, b::MutableSearchItem) = a.d_min < b.d_min
-
-"""
-Initialize MutableSearchItem for root.
-"""
-@inline function init_root!(item::MutableSearchItem, cluster::Cluster, dist::Float64)
-    Rmax = abs(cluster.Rmax)
-    item.cluster = cluster
-    item.dist = dist
-    item.dist_brother = 0.0
-    item.d_min = max(0.0, dist - Rmax)
-    item.d_max = dist + Rmax
-    return item
-end
-
-"""
-Initialize MutableSearchItem for child.
-"""
-@inline function init_child!(item::MutableSearchItem, cluster::Cluster,
-                             dist::Float64, dist_brother::Float64,
-                             parent::MutableSearchItem)
-    Rmax = abs(cluster.Rmax)
-    g_min = cluster.g_min
-
-    d_min_local = max(0.0, 0.5 * (dist - dist_brother + g_min))
-    d_min = max(d_min_local, max(dist - Rmax, parent.d_min))
-    d_max = min(parent.d_max, dist + Rmax)
-
-    item.cluster = cluster
-    item.dist = dist
-    item.dist_brother = dist_brother
-    item.d_min = d_min
-    item.d_max = d_max
-
-    return item
-end
-
-"""
-    SearchItemPool
-
-Object pool for MutableSearchItems to avoid allocations.
-"""
-mutable struct SearchItemPool
-    items::Vector{MutableSearchItem}
-    next_free::Int
-
-    function SearchItemPool(capacity::Int)
-        items = [MutableSearchItem() for _ in 1:capacity]
-        new(items, 1)
-    end
-end
-
-@inline function reset_pool!(pool::SearchItemPool)
-    pool.next_free = 1
-end
-
-@inline function allocate_item!(pool::SearchItemPool)
-    if pool.next_free > length(pool.items)
-        error("SearchItem pool exhausted")
-    end
-    item = pool.items[pool.next_free]
-    pool.next_free += 1
-    return item
-end
-
-"""
-    PreAllocatedPriorityQueue{T}
-
-Pre-allocated priority queue that avoids allocations during search.
-Uses a fixed-size array and maintains heap invariant manually.
-"""
-mutable struct PreAllocatedPriorityQueue{T}
-    items::Vector{T}
-    size::Int
-    capacity::Int
-
-    function PreAllocatedPriorityQueue{T}(capacity::Int) where T
-        items = Vector{T}(undef, capacity)
-        new{T}(items, 0, capacity)
-    end
-end
-
-@inline function Base.isempty(pq::PreAllocatedPriorityQueue)
-    return pq.size == 0
-end
-
-@inline function Base.push!(pq::PreAllocatedPriorityQueue{T}, item::T) where T
-    if pq.size >= pq.capacity
-        error("Priority queue capacity exceeded")
-    end
-
-    pq.size += 1
-    pq.items[pq.size] = item
-
-    # Bubble up
-    idx = pq.size
-    @inbounds while idx > 1
-        parent = idx ÷ 2
-        if pq.items[idx] < pq.items[parent]
-            pq.items[idx], pq.items[parent] = pq.items[parent], pq.items[idx]
-            idx = parent
-        else
-            break
-        end
-    end
-
-    return pq
-end
-
-@inline function Base.popfirst!(pq::PreAllocatedPriorityQueue)
-    if pq.size == 0
-        error("Priority queue is empty")
-    end
-
-    result = pq.items[1]
-    pq.items[1] = pq.items[pq.size]
-    pq.size -= 1
-
-    # Bubble down
-    idx = 1
-    @inbounds while true
-        left = 2 * idx
-        right = 2 * idx + 1
-        smallest = idx
-
-        if left <= pq.size && pq.items[left] < pq.items[smallest]
-            smallest = left
-        end
-
-        if right <= pq.size && pq.items[right] < pq.items[smallest]
-            smallest = right
-        end
-
-        if smallest != idx
-            pq.items[idx], pq.items[smallest] = pq.items[smallest], pq.items[idx]
-            idx = smallest
-        else
-            break
-        end
-    end
-
-    return result
-end
+#
+# Key design: Uses immutable SearchItem structs stored by value in MinHeap.
+# Immutable structs are stack-allocated and stored inline in vectors,
+# eliminating the ~960 heap allocations per query that the previous
+# MutableSearchItem pool approach required.
 
 """
     SearchContext
 
-Pre-allocated context for search operations to avoid allocations.
+Pre-allocated context for search operations to minimize allocations.
+
+When reused across queries (recommended for batch processing), only 1 allocation
+occurs per query (the result vector). Without reuse, ~5 allocations total.
+
+# Example
+```julia
+ctx = SearchContext(tree, k)
+for query in queries
+    neighbors = knn(tree, query, k=k, ctx=ctx)  # 1 allocation per query
+end
+```
 """
 mutable struct SearchContext
-    # Object pool for SearchItems
-    pool::SearchItemPool
+    # Priority queue (min-heap by d_min) using immutable SearchItem values
+    heap::MinHeap{SearchItem}
 
-    # Priority queue for search items
-    pq::PreAllocatedPriorityQueue{MutableSearchItem}
-
-    # Neighbor table (pre-allocated)
+    # Neighbor table (pre-allocated max-heap for k-nearest)
     neighbors::Vector{Neighbor}
     neighbor_count::Int
     k::Int
@@ -181,11 +34,10 @@ mutable struct SearchContext
     # Statistics
     distance_calcs::Int
 
-    function SearchContext(max_pq_size::Int=1000, max_k::Int=100)
-        pool = SearchItemPool(max_pq_size)
-        pq = PreAllocatedPriorityQueue{MutableSearchItem}(max_pq_size)
+    function SearchContext(heap_capacity::Int=256, max_k::Int=100)
+        heap = MinHeap{SearchItem}(heap_capacity)
         neighbors = Vector{Neighbor}(undef, max_k)
-        new(pool, pq, neighbors, 0, 0, Inf, 0)
+        new(heap, neighbors, 0, 0, Inf, 0)
     end
 end
 
@@ -193,7 +45,7 @@ end
     SearchContext(tree::ATRIATree, k::Int)
 
 Create a SearchContext sized appropriately for the given tree.
-Automatically determines the priority queue size based on tree structure.
+Automatically determines the heap capacity based on tree structure.
 """
 function SearchContext(tree::ATRIATree, k::Int)
     return SearchContext(tree.total_clusters * 2, k)
@@ -203,8 +55,7 @@ end
 Reset search context for a new query.
 """
 @inline function reset!(ctx::SearchContext, k::Int)
-    reset_pool!(ctx.pool)
-    ctx.pq.size = 0
+    clear!(ctx.heap)
     ctx.neighbor_count = 0
     ctx.k = k
     ctx.high_dist = Inf
@@ -213,7 +64,7 @@ Reset search context for a new query.
 end
 
 """
-Insert a neighbor into the pre-allocated table.
+Insert a neighbor into the pre-allocated table (max-heap for k-nearest).
 """
 @inline function insert_neighbor!(ctx::SearchContext, neighbor::Neighbor)
     if ctx.neighbor_count < ctx.k
@@ -224,7 +75,7 @@ Insert a neighbor into the pre-allocated table.
         # Heapify up (max heap)
         idx = ctx.neighbor_count
         @inbounds while idx > 1
-            parent = idx >> 1  # Faster than idx ÷ 2
+            parent = idx >> 1
             if ctx.neighbors[idx].distance > ctx.neighbors[parent].distance
                 ctx.neighbors[idx], ctx.neighbors[parent] = ctx.neighbors[parent], ctx.neighbors[idx]
                 idx = parent
@@ -244,7 +95,7 @@ Insert a neighbor into the pre-allocated table.
         # Heapify down
         idx = 1
         @inbounds while true
-            left = idx << 1  # Faster than 2 * idx
+            left = idx << 1
             right = left + 1
             largest = idx
 
@@ -270,16 +121,25 @@ end
 
 """
 Extract final sorted neighbors (allocates one array for results).
+
+Uses manual insertion sort to avoid view/closure allocations.
 """
 function extract_neighbors(ctx::SearchContext)
-    # Create result array (this allocation is necessary for return value)
-    result = Vector{Neighbor}(undef, ctx.neighbor_count)
-    @inbounds for i in 1:ctx.neighbor_count
-        result[i] = ctx.neighbors[i]
+    n = ctx.neighbor_count
+    result = Vector{Neighbor}(undef, n)
+    @inbounds copyto!(result, 1, ctx.neighbors, 1, n)
+
+    # Insertion sort by distance (k is typically small, so this is efficient)
+    @inbounds for i in 2:n
+        key = result[i]
+        j = i - 1
+        while j >= 1 && result[j].distance > key.distance
+            result[j + 1] = result[j]
+            j -= 1
+        end
+        result[j + 1] = key
     end
 
-    # Sort by distance
-    sort!(result, by=n->n.distance)
     return result
 end
 
@@ -488,13 +348,11 @@ function _search_knn!(tree::ATRIATree, query_point, ctx::SearchContext,
     root_dist = distance(tree.points, tree.root.center, query_point)
     ctx.distance_calcs += 1
 
-    # Get pooled item and initialize for root
-    root_si = allocate_item!(ctx.pool)
-    init_root!(root_si, tree.root, root_dist)
-    push!(ctx.pq, root_si)
+    # Create immutable SearchItem for root (no heap allocation)
+    push!(ctx.heap, SearchItem(tree.root, root_dist))
 
-    while !isempty(ctx.pq)
-        si = popfirst!(ctx.pq)
+    while !isempty(ctx.heap)
+        si = popfirst!(ctx.heap)
         c = si.cluster
 
         # Test cluster center if not excluded
@@ -518,7 +376,7 @@ end
 """
 Terminal node search.
 """
-@inline function _search_terminal!(tree::ATRIATree, c::Cluster, si::MutableSearchItem,
+@inline function _search_terminal!(tree::ATRIATree, c::Cluster, si::SearchItem,
                                   query_point, ctx::SearchContext, first::Int, last::Int)
     section_start = c.start
     section_end = c.start + c.length - 1
@@ -561,21 +419,14 @@ end
 Child cluster pushing.
 """
 @inline function _push_children!(tree::ATRIATree, c::Cluster,
-                                parent_si::MutableSearchItem,
+                                parent_si::SearchItem,
                                 query_point, ctx::SearchContext)
     # Compute distances to children
     d_left = distance(tree.points, c.left.center, query_point)
     d_right = distance(tree.points, c.right.center, query_point)
     ctx.distance_calcs += 2
 
-    # Get pooled items and initialize (NO ALLOCATIONS!)
-    si_left = allocate_item!(ctx.pool)
-    init_child!(si_left, c.left, d_left, d_right, parent_si)
-
-    si_right = allocate_item!(ctx.pool)
-    init_child!(si_right, c.right, d_right, d_left, parent_si)
-
-    # Push onto queue
-    push!(ctx.pq, si_left)
-    push!(ctx.pq, si_right)
+    # Create immutable SearchItems (stored by value in heap, no heap allocation)
+    push!(ctx.heap, SearchItem(c.left, d_left, d_right, parent_si))
+    push!(ctx.heap, SearchItem(c.right, d_right, d_left, parent_si))
 end

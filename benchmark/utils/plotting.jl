@@ -5,6 +5,7 @@ Visualization utilities for benchmark results.
 Creates publication-quality plots matching the style of the ATRIA paper.
 """
 
+ENV["GKSwstype"] = get(ENV, "GKSwstype", "100")  # Force headless GR to avoid display errors
 using Plots
 using Statistics
 using Printf
