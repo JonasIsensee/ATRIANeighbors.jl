@@ -49,18 +49,18 @@ Perform brute force k-nearest neighbor search for multiple query points.
 
 # Arguments
 - `ps::AbstractPointSet`: The point set to search in
-- `query_points::AbstractMatrix`: Matrix where each row is a query point
+- `query_points::AbstractMatrix`: D × N matrix where each column is a query point
 - `k::Int`: Number of nearest neighbors to find
 
 # Returns
-- Vector of vectors, where result[i] contains the k nearest neighbors for query_points[i,:]
+- Vector of vectors, where result[i] contains the k nearest neighbors for query_points[:,i]
 """
 function brute_knn_batch(ps::AbstractPointSet, query_points::AbstractMatrix, k::Int)
-    n_queries = size(query_points, 1)
+    n_queries = size(query_points, 2)
     results = Vector{Vector{Neighbor}}(undef, n_queries)
 
     for i in 1:n_queries
-        query_point = query_points[i, :]
+        query_point = @view query_points[:, i]
         results[i] = brute_knn(ps, query_point, k)
     end
 

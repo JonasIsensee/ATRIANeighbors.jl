@@ -4,7 +4,9 @@ using ATRIANeighbors: EuclideanMetric, MaximumMetric
 
 @testset "PointSet" begin
     @testset "Construction and size" begin
-        data = Float64[0 0; 3 4; 1 1]  # 3 points in 2D
+        # D×N layout: columns are points
+        data = Float64[0 3 1;    # x coordinates
+                       0 4 1]    # y coordinates  -> 3 points in 2D
         ps = PointSet(data, EuclideanMetric())
 
         @test size(ps) == (3, 2)
@@ -13,7 +15,8 @@ using ATRIANeighbors: EuclideanMetric, MaximumMetric
     end
 
     @testset "Default metric constructor" begin
-        data = Float64[0 0; 1 1]
+        data = Float64[0 1;
+                       0 1]  # 2 points in 2D
         ps = PointSet(data)
 
         @test size(ps) == (2, 2)
@@ -21,7 +24,9 @@ using ATRIANeighbors: EuclideanMetric, MaximumMetric
     end
 
     @testset "getpoint" begin
-        data = Float64[1 2; 3 4; 5 6]
+        # 3 points: [1,2], [3,4], [5,6]
+        data = Float64[1 3 5;
+                       2 4 6]
         ps = PointSet(data)
 
         p1 = getpoint(ps, 1)
@@ -35,7 +40,9 @@ using ATRIANeighbors: EuclideanMetric, MaximumMetric
     end
 
     @testset "distance between points in set" begin
-        data = Float64[0 0; 3 4; 0 0]
+        # 3 points: [0,0], [3,4], [0,0]
+        data = Float64[0 3 0;
+                       0 4 0]
         ps = PointSet(data, EuclideanMetric())
 
         # Distance from point 1 to point 2: sqrt(3^2 + 4^2) = 5
@@ -49,7 +56,9 @@ using ATRIANeighbors: EuclideanMetric, MaximumMetric
     end
 
     @testset "distance to external query point" begin
-        data = Float64[0 0; 1 1]
+        # 2 points: [0,0], [1,1]
+        data = Float64[0 1;
+                       0 1]
         ps = PointSet(data, EuclideanMetric())
 
         query = [3.0, 4.0]
@@ -62,7 +71,9 @@ using ATRIANeighbors: EuclideanMetric, MaximumMetric
     end
 
     @testset "distance with threshold" begin
-        data = Float64[0 0; 3 4]
+        # 2 points: [0,0], [3,4]
+        data = Float64[0 3;
+                       0 4]
         ps = PointSet(data, EuclideanMetric())
 
         query = [0.0, 0.0]
@@ -76,7 +87,9 @@ using ATRIANeighbors: EuclideanMetric, MaximumMetric
     end
 
     @testset "Different metrics" begin
-        data = Float64[0 0; 3 4]
+        # 2 points: [0,0], [3,4]
+        data = Float64[0 3;
+                       0 4]
 
         ps_euclidean = PointSet(data, EuclideanMetric())
         ps_maximum = PointSet(data, MaximumMetric())
@@ -86,12 +99,13 @@ using ATRIANeighbors: EuclideanMetric, MaximumMetric
     end
 
     @testset "Higher dimensions" begin
-        # 4 points in 5D
+        # 4 points in 5D (D×N = 5×4)
         data = Float64[
-            1 2 3 4 5;
-            2 3 4 5 6;
-            0 0 0 0 0;
-            1 1 1 1 1
+            1 2 0 1;
+            2 3 0 1;
+            3 4 0 1;
+            4 5 0 1;
+            5 6 0 1
         ]
         ps = PointSet(data)
 
@@ -103,7 +117,7 @@ using ATRIANeighbors: EuclideanMetric, MaximumMetric
     end
 
     @testset "Single point" begin
-        data = Float64[1 2 3]  # 1 point in 3D
+        data = Float64[1; 2; 3;;]  # 1 point in 3D (3×1 matrix)
         ps = PointSet(data)
 
         @test size(ps) == (1, 3)
@@ -113,7 +127,7 @@ using ATRIANeighbors: EuclideanMetric, MaximumMetric
     @testset "Many points" begin
         n = 1000
         d = 10
-        data = randn(n, d)
+        data = randn(d, n)  # D×N layout
         ps = PointSet(data)
 
         @test size(ps) == (n, d)
@@ -272,11 +286,11 @@ end
         data = Float64[1, 2, 3, 4, 5]
         ps_embedded = EmbeddedTimeSeries(data, 3, 1)
 
-        # Create equivalent PointSet manually
+        # Create equivalent PointSet manually (D×N layout: 3×3)
         matrix_data = Float64[
-            1 2 3;
-            2 3 4;
-            3 4 5
+            1 2 3;   # dim 1
+            2 3 4;   # dim 2
+            3 4 5    # dim 3
         ]
         ps_matrix = PointSet(matrix_data)
 
@@ -326,12 +340,12 @@ end
 
     ps_embedded = EmbeddedTimeSeries(data, dim, delay)
 
-    # Manually create embedded vectors
+    # Manually create embedded vectors (D×N layout)
     n_points = length(data) - (dim - 1) * delay
-    matrix = zeros(n_points, dim)
+    matrix = zeros(dim, n_points)
     for i in 1:n_points
         for d in 1:dim
-            matrix[i, d] = data[i + (d - 1) * delay]
+            matrix[d, i] = data[i + (d - 1) * delay]
         end
     end
     ps_matrix = PointSet(matrix)

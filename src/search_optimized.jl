@@ -144,7 +144,7 @@ function extract_neighbors(ctx::SearchContext)
 end
 
 """
-    knn(tree::ATRIATree, query_point; k::Int=1, epsilon::Float64=0.0,
+    knn(tree::ATRIATree, query_point::AbstractVector; k::Int=1, epsilon::Float64=0.0,
         exclude_range::Tuple{Int,Int}=(-1,-1), track_stats::Bool=false,
         ctx::Union{Nothing,SearchContext}=nothing)
 
@@ -152,7 +152,7 @@ Search for k nearest neighbors using the ATRIA tree.
 
 # Arguments
 - `tree::ATRIATree`: The ATRIA tree to search
-- `query_point`: The query point (vector or point from point set)
+- `query_point::AbstractVector`: The query point (vector or point from point set)
 - `k::Int`: Number of nearest neighbors to find (default: 1)
 - `epsilon::Float64`: Approximation parameter (0.0 = exact search, >0.0 = approximate)
 - `exclude_range::Tuple{Int,Int}`: Exclude points in range [first, last] from results
@@ -171,8 +171,12 @@ for query in queries
     neighbors = knn(tree, query, k=k, ctx=ctx)
 end
 ```
+
+# Note
+For multiple query points, use `knn_batch` or pass a matrix as the query argument.
+Passing a matrix to this function will automatically dispatch to batch processing.
 """
-function knn(tree::ATRIATree, query_point;
+function knn(tree::ATRIATree, query_point::AbstractVector;
             k::Int=1,
             epsilon::Float64=0.0,
             exclude_range::Tuple{Int,Int}=(-1,-1),
@@ -203,6 +207,93 @@ function knn(tree::ATRIATree, query_point;
 end
 
 """
+    knn(tree::ATRIATree, queries::AbstractMatrix; kwargs...)
+
+Convenience method for batch queries. When passed a matrix, each column is treated
+as a query point and batch processing is used.
+
+# Arguments
+- `tree::ATRIATree`: The ATRIA tree to search
+- `queries::AbstractMatrix`: D × N matrix where each column is a query point
+- All other keyword arguments are passed to `knn_batch`
+
+# Returns
+- Vector of neighbor lists (one per query column)
+
+# Example
+```julia
+queries = randn(D, 100)  # 100 query points in D dimensions
+results = knn(tree, queries, k=10)  # Returns Vector{Vector{Neighbor}}
+```
+"""
+function knn(tree::ATRIATree, queries::AbstractMatrix;
+            k::Int=1,
+            epsilon::Float64=0.0,
+            exclude_range::Tuple{Int,Int}=(-1,-1),
+            track_stats::Bool=false)
+    return knn_batch(tree, queries, k=k, epsilon=epsilon,
+                     exclude_range=exclude_range, track_stats=track_stats)
+end
+
+"""
+    knn_batch(tree::ATRIATree, queries::AbstractMatrix; k::Int=1, epsilon::Float64=0.0,
+              exclude_range::Tuple{Int,Int}=(-1,-1), track_stats::Bool=false)
+
+Perform k-NN search on multiple query points given as a matrix (each column is a query).
+
+# Arguments
+- `tree::ATRIATree`: The ATRIA tree to search
+- `queries::AbstractMatrix`: D × N matrix where each column is a query point
+- `k::Int`: Number of nearest neighbors to find (default: 1)
+- `epsilon::Float64`: Approximation parameter (0.0 = exact search)
+- `exclude_range::Tuple{Int,Int}`: Exclude points in range [first, last] from results
+- `track_stats::Bool`: If true, return statistics for each query
+
+# Returns
+- If `track_stats=false`: Vector of neighbor lists (one per query)
+- If `track_stats=true`: Tuple of (results, stats_list) where each stats contains distance_calcs and f_k
+
+# Example
+```julia
+# Batch search with matrix input
+queries = randn(D, 100)  # 100 query points in D dimensions
+results = knn_batch(tree, queries, k=10)
+```
+"""
+function knn_batch(tree::ATRIATree, queries::AbstractMatrix;
+                  k::Int=1,
+                  epsilon::Float64=0.0,
+                  exclude_range::Tuple{Int,Int}=(-1,-1),
+                  track_stats::Bool=false)
+    n_queries = size(queries, 2)
+
+    # Pre-allocate context once for all queries
+    ctx = SearchContext(tree, k)
+
+    # Process all queries
+    results = Vector{Vector{Neighbor}}(undef, n_queries)
+
+    if track_stats
+        stats_list = Vector{NamedTuple{(:distance_calcs, :f_k), Tuple{Int, Float64}}}(undef, n_queries)
+        for i in 1:n_queries
+            query = @view queries[:, i]
+            neighbors, stats = knn(tree, query, k=k, epsilon=epsilon,
+                                  exclude_range=exclude_range, track_stats=true, ctx=ctx)
+            results[i] = neighbors
+            stats_list[i] = stats
+        end
+        return (results, stats_list)
+    else
+        for i in 1:n_queries
+            query = @view queries[:, i]
+            results[i] = knn(tree, query, k=k, epsilon=epsilon,
+                           exclude_range=exclude_range, track_stats=false, ctx=ctx)
+        end
+        return results
+    end
+end
+
+"""
     knn_batch(tree::ATRIATree, queries; k::Int=1, epsilon::Float64=0.0,
               exclude_range::Tuple{Int,Int}=(-1,-1), track_stats::Bool=false)
 
@@ -210,7 +301,7 @@ Perform k-NN search on multiple query points with automatic context reuse.
 
 # Arguments
 - `tree::ATRIATree`: The ATRIA tree to search
-- `queries`: Iterable of query points (e.g., Vector{Vector{Float64}} or Matrix where each row is a query)
+- `queries`: Iterable of query points (e.g., Vector{Vector{Float64}})
 - `k::Int`: Number of nearest neighbors to find (default: 1)
 - `epsilon::Float64`: Approximation parameter (0.0 = exact search)
 - `exclude_range::Tuple{Int,Int}`: Exclude points in range [first, last] from results
@@ -236,14 +327,16 @@ function knn_batch(tree::ATRIATree, queries;
                   epsilon::Float64=0.0,
                   exclude_range::Tuple{Int,Int}=(-1,-1),
                   track_stats::Bool=false)
+    n_queries = length(queries)
+
     # Pre-allocate context once for all queries
     ctx = SearchContext(tree, k)
 
     # Process all queries
-    results = Vector{Vector{Neighbor}}(undef, length(queries))
+    results = Vector{Vector{Neighbor}}(undef, n_queries)
 
     if track_stats
-        stats_list = Vector{NamedTuple{(:distance_calcs, :f_k), Tuple{Int, Float64}}}(undef, length(queries))
+        stats_list = Vector{NamedTuple{(:distance_calcs, :f_k), Tuple{Int, Float64}}}(undef, n_queries)
         for (i, query) in enumerate(queries)
             neighbors, stats = knn(tree, query, k=k, epsilon=epsilon,
                                   exclude_range=exclude_range, track_stats=true, ctx=ctx)
@@ -256,6 +349,86 @@ function knn_batch(tree::ATRIATree, queries;
             results[i] = knn(tree, query, k=k, epsilon=epsilon,
                            exclude_range=exclude_range, track_stats=false, ctx=ctx)
         end
+        return results
+    end
+end
+
+"""
+    knn_batch_parallel(tree::ATRIATree, queries::AbstractMatrix; k::Int=1, epsilon::Float64=0.0,
+                       exclude_range::Tuple{Int,Int}=(-1,-1), track_stats::Bool=false)
+
+Perform k-NN search on multiple query points (matrix input) with parallel execution.
+
+**IMPORTANT**: This function uses multi-threading for parallel query processing.
+Ensure Julia is started with multiple threads: `julia --threads=auto` or set
+the JULIA_NUM_THREADS environment variable.
+
+This provides significant speedup for batch queries on multi-core machines:
+- 4-core machine: ~3-4x speedup
+- 8-core machine: ~6-8x speedup
+
+Each thread gets its own SearchContext to avoid contention.
+
+# Arguments
+- `tree::ATRIATree`: The ATRIA tree to search
+- `queries::AbstractMatrix`: D × N matrix where each column is a query point
+- `k::Int`: Number of nearest neighbors to find (default: 1)
+- `epsilon::Float64`: Approximation parameter (0.0 = exact search)
+- `exclude_range::Tuple{Int,Int}`: Exclude points in range [first, last] from results
+- `track_stats::Bool`: If true, return statistics for each query
+
+# Returns
+- If `track_stats=false`: Vector of neighbor lists (one per query)
+- If `track_stats=true`: Tuple of (results, stats_list) where each stats contains distance_calcs and f_k
+
+# Example
+```julia
+# Enable threading: julia --threads=8
+queries = randn(D, 1000)  # 1000 query points in D dimensions
+results = knn_batch_parallel(tree, queries, k=10)  # 6-8x faster on 8 cores!
+```
+
+# Performance Notes
+- For small batches (< 100 queries), overhead may dominate → use `knn_batch` instead
+- For large batches (> 1000 queries), parallel version provides excellent speedup
+- Tree is read-only, so parallelization is safe and lock-free
+"""
+function knn_batch_parallel(tree::ATRIATree, queries::AbstractMatrix;
+                           k::Int=1,
+                           epsilon::Float64=0.0,
+                           exclude_range::Tuple{Int,Int}=(-1,-1),
+                           track_stats::Bool=false)
+    n_queries = size(queries, 2)
+
+    # Pre-allocate results
+    results = Vector{Vector{Neighbor}}(undef, n_queries)
+
+    # OncePerTask with closure capturing tree and k - each task lazily gets its own context
+    get_context = Base.OncePerTask{SearchContext}() do
+        SearchContext(tree, k)
+    end
+
+    if track_stats
+        stats_list = Vector{NamedTuple{(:distance_calcs, :f_k), Tuple{Int, Float64}}}(undef, n_queries)
+
+        Threads.@threads for i in 1:n_queries
+            ctx = get_context()
+            query = @view queries[:, i]
+            neighbors, stats = knn(tree, query, k=k, epsilon=epsilon,
+                                  exclude_range=exclude_range, track_stats=true, ctx=ctx)
+            results[i] = neighbors
+            stats_list[i] = stats
+        end
+
+        return (results, stats_list)
+    else
+        Threads.@threads for i in 1:n_queries
+            ctx = get_context()
+            query = @view queries[:, i]
+            results[i] = knn(tree, query, k=k, epsilon=epsilon,
+                           exclude_range=exclude_range, track_stats=false, ctx=ctx)
+        end
+
         return results
     end
 end
@@ -278,7 +451,7 @@ Each thread gets its own SearchContext to avoid contention.
 
 # Arguments
 - `tree::ATRIATree`: The ATRIA tree to search
-- `queries`: Iterable of query points (e.g., Vector{Vector{Float64}} or Matrix where each row is a query)
+- `queries`: Iterable of query points (e.g., Vector{Vector{Float64}})
 - `k::Int`: Number of nearest neighbors to find (default: 1)
 - `epsilon::Float64`: Approximation parameter (0.0 = exact search)
 - `exclude_range::Tuple{Int,Int}`: Exclude points in range [first, last] from results
@@ -310,13 +483,16 @@ function knn_batch_parallel(tree::ATRIATree, queries;
     # Pre-allocate results
     results = Vector{Vector{Neighbor}}(undef, n_queries)
 
+    # OncePerTask with closure capturing tree and k - each task lazily gets its own context
+    get_context = Base.OncePerTask{SearchContext}() do
+        SearchContext(tree, k)
+    end
+
     if track_stats
         stats_list = Vector{NamedTuple{(:distance_calcs, :f_k), Tuple{Int, Float64}}}(undef, n_queries)
 
-        # Parallel processing with thread-local contexts
         Threads.@threads for i in 1:n_queries
-            # Each thread gets its own SearchContext to avoid contention
-            ctx = SearchContext(tree, k)
+            ctx = get_context()
             neighbors, stats = knn(tree, queries[i], k=k, epsilon=epsilon,
                                   exclude_range=exclude_range, track_stats=true, ctx=ctx)
             results[i] = neighbors
@@ -325,10 +501,8 @@ function knn_batch_parallel(tree::ATRIATree, queries;
 
         return (results, stats_list)
     else
-        # Parallel processing with thread-local contexts
         Threads.@threads for i in 1:n_queries
-            # Each thread gets its own SearchContext to avoid contention
-            ctx = SearchContext(tree, k)
+            ctx = get_context()
             results[i] = knn(tree, queries[i], k=k, epsilon=epsilon,
                            exclude_range=exclude_range, track_stats=false, ctx=ctx)
         end

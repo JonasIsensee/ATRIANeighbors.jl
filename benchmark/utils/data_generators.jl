@@ -3,6 +3,9 @@
 
 Generate various types of datasets for benchmarking ATRIA performance.
 
+All generators return D×N matrices (columns are points) to match the
+ATRIANeighbors convention and NearestNeighbors.jl compatibility.
+
 ATRIA is designed to excel on:
 - Time-delay embedded data (attractors from dynamical systems)
 - High-dimensional data (D > 10)
@@ -25,7 +28,7 @@ using LinearAlgebra
 
 Generate N points from the Lorenz attractor.
 
-Returns a matrix of size N×3.
+Returns a matrix of size 3×N (D×N layout: each column is a point).
 The Lorenz system is defined by:
     dx/dt = σ(y - x)
     dy/dt = x(ρ - z) - y
@@ -53,12 +56,12 @@ function generate_lorenz_attractor(N::Int, dt::Float64=0.01;
         z += dt * dz
     end
 
-    # Generate data
-    points = zeros(N, 3)
+    # Generate data (D×N layout)
+    points = zeros(3, N)
     for i in 1:N
-        points[i, 1] = x
-        points[i, 2] = y
-        points[i, 3] = z
+        points[1, i] = x
+        points[2, i] = y
+        points[3, i] = z
 
         dx = σ * (y - x)
         dy = x * (ρ - z) - y
@@ -79,7 +82,7 @@ end
 
 Generate N points from the Rössler attractor.
 
-Returns a matrix of size N×3.
+Returns a matrix of size 3×N (D×N layout: each column is a point).
 The Rössler system is defined by:
     dx/dt = -y - z
     dy/dt = x + ay
@@ -102,12 +105,12 @@ function generate_rossler_attractor(N::Int, dt::Float64=0.05;
         z += dt * dz
     end
 
-    # Generate data
-    points = zeros(N, 3)
+    # Generate data (D×N layout)
+    points = zeros(3, N)
     for i in 1:N
-        points[i, 1] = x
-        points[i, 2] = y
-        points[i, 3] = z
+        points[1, i] = x
+        points[2, i] = y
+        points[3, i] = z
 
         dx = -y - z
         dy = x + a * y
@@ -127,7 +130,7 @@ end
 
 Generate N points from the Henon map.
 
-Returns a matrix of size N×2.
+Returns a matrix of size 2×N (D×N layout: each column is a point).
 The Henon map is defined by:
     x_{n+1} = 1 - a*x_n^2 + y_n
     y_{n+1} = b*x_n
@@ -144,11 +147,11 @@ function generate_henon_map(N::Int; a::Float64=1.4, b::Float64=0.3,
         x, y = x_new, y_new
     end
 
-    # Generate data
-    points = zeros(N, 2)
+    # Generate data (D×N layout)
+    points = zeros(2, N)
     for i in 1:N
-        points[i, 1] = x
-        points[i, 2] = y
+        points[1, i] = x
+        points[2, i] = y
 
         x_new = 1.0 - a * x^2 + y
         y_new = b * x
@@ -201,24 +204,24 @@ end
 
 Generate N points from a Gaussian mixture model with n_clusters clusters.
 
-Returns a matrix of size N×D.
+Returns a matrix of size D×N (each column is a point).
 Clusters are randomly placed and have equal probability.
 """
 function generate_gaussian_mixture(N::Int, D::Int, n_clusters::Int;
                                   cluster_std::Float64=1.0, separation::Float64=10.0,
                                   rng::AbstractRNG=Random.GLOBAL_RNG)
-    # Generate cluster centers
-    centers = randn(rng, n_clusters, D) .* separation
+    # Generate cluster centers (D×n_clusters)
+    centers = randn(rng, D, n_clusters) .* separation
 
-    # Generate points
-    points = zeros(N, D)
+    # Generate points (D×N layout)
+    points = zeros(D, N)
     for i in 1:N
         # Choose cluster randomly
         cluster_idx = rand(rng, 1:n_clusters)
-        center = centers[cluster_idx, :]
+        center = @view centers[:, cluster_idx]
 
         # Generate point around center
-        points[i, :] = center .+ randn(rng, D) .* cluster_std
+        points[:, i] = center .+ randn(rng, D) .* cluster_std
     end
 
     return points
@@ -232,31 +235,32 @@ end
 Generate N points with hierarchical cluster structure.
 
 Creates 2^depth clusters organized in a binary tree structure.
+Returns a matrix of size D×N (each column is a point).
 """
 function generate_hierarchical_clusters(N::Int, D::Int, depth::Int;
                                        cluster_std::Float64=1.0, separation::Float64=5.0,
                                        rng::AbstractRNG=Random.GLOBAL_RNG)
     n_clusters = 2^depth
 
-    # Build hierarchical centers
-    centers = zeros(n_clusters, D)
+    # Build hierarchical centers (D×n_clusters)
+    centers = zeros(D, n_clusters)
     for level in 0:depth-1
         n_at_level = 2^level
         for i in 1:n_at_level
             # Generate offset for this level
             offset = randn(rng, D) .* (separation * (depth - level))
             # Apply to both children
-            centers[2*i-1, :] .+= offset
-            centers[2*i, :] .+= offset
+            centers[:, 2*i-1] .+= offset
+            centers[:, 2*i] .+= offset
         end
     end
 
-    # Generate points
-    points = zeros(N, D)
+    # Generate points (D×N layout)
+    points = zeros(D, N)
     for i in 1:N
         cluster_idx = rand(rng, 1:n_clusters)
-        center = centers[cluster_idx, :]
-        points[i, :] = center .+ randn(rng, D) .* cluster_std
+        center = @view centers[:, cluster_idx]
+        points[:, i] = center .+ randn(rng, D) .* cluster_std
     end
 
     return points
@@ -271,21 +275,22 @@ end
                        rng::AbstractRNG=Random.GLOBAL_RNG) -> Matrix{Float64}
 
 Generate N points on a Swiss roll manifold (2D manifold in 3D space).
+Returns a matrix of size 3×N (each column is a point).
 """
 function generate_swiss_roll(N::Int; noise::Float64=0.1,
                             rng::AbstractRNG=Random.GLOBAL_RNG)
-    points = zeros(N, 3)
+    points = zeros(3, N)
 
     for i in 1:N
         t = 1.5 * π * (1 + 2 * rand(rng))
         h = 21.0 * rand(rng)
 
-        points[i, 1] = t * cos(t)
-        points[i, 2] = h
-        points[i, 3] = t * sin(t)
+        points[1, i] = t * cos(t)
+        points[2, i] = h
+        points[3, i] = t * sin(t)
 
         # Add noise
-        points[i, :] .+= randn(rng, 3) .* noise
+        points[:, i] .+= randn(rng, 3) .* noise
     end
 
     return points
@@ -296,21 +301,22 @@ end
                     rng::AbstractRNG=Random.GLOBAL_RNG) -> Matrix{Float64}
 
 Generate N points on an S-curve manifold (2D manifold in 3D space).
+Returns a matrix of size 3×N (each column is a point).
 """
 function generate_s_curve(N::Int; noise::Float64=0.1,
                          rng::AbstractRNG=Random.GLOBAL_RNG)
-    points = zeros(N, 3)
+    points = zeros(3, N)
 
     for i in 1:N
         t = 3 * π * (rand(rng) - 0.5)
         h = 2.0 * rand(rng)
 
-        points[i, 1] = sin(t)
-        points[i, 2] = h
-        points[i, 3] = sign(t) * (cos(t) - 1)
+        points[1, i] = sin(t)
+        points[2, i] = h
+        points[3, i] = sign(t) * (cos(t) - 1)
 
         # Add noise
-        points[i, :] .+= randn(rng, 3) .* noise
+        points[:, i] .+= randn(rng, 3) .* noise
     end
 
     return points
@@ -321,10 +327,11 @@ end
                    rng::AbstractRNG=Random.GLOBAL_RNG) -> Matrix{Float64}
 
 Generate N points uniformly distributed on a D-dimensional sphere.
+Returns a matrix of size D×N (each column is a point).
 """
 function generate_sphere(N::Int, D::Int; radius::Float64=1.0, noise::Float64=0.0,
                         rng::AbstractRNG=Random.GLOBAL_RNG)
-    points = zeros(N, D)
+    points = zeros(D, N)
 
     for i in 1:N
         # Generate random direction
@@ -332,7 +339,7 @@ function generate_sphere(N::Int, D::Int; radius::Float64=1.0, noise::Float64=0.0
         point ./= norm(point)
         point .*= radius
 
-        points[i, :] = point .+ randn(rng, D) .* noise
+        points[:, i] = point .+ randn(rng, D) .* noise
     end
 
     return points
@@ -343,6 +350,7 @@ end
                   rng::AbstractRNG=Random.GLOBAL_RNG) -> Matrix{Float64}
 
 Generate N points on a torus (2D manifold in 3D space).
+Returns a matrix of size 3×N (each column is a point).
 
 Parameters:
 - R: Major radius (distance from center to tube center)
@@ -350,18 +358,18 @@ Parameters:
 """
 function generate_torus(N::Int; R::Float64=2.0, r::Float64=1.0, noise::Float64=0.1,
                        rng::AbstractRNG=Random.GLOBAL_RNG)
-    points = zeros(N, 3)
+    points = zeros(3, N)
 
     for i in 1:N
         θ = 2π * rand(rng)  # Major angle
         φ = 2π * rand(rng)  # Minor angle
 
-        points[i, 1] = (R + r * cos(φ)) * cos(θ)
-        points[i, 2] = (R + r * cos(φ)) * sin(θ)
-        points[i, 3] = r * sin(φ)
+        points[1, i] = (R + r * cos(φ)) * cos(θ)
+        points[2, i] = (R + r * cos(φ)) * sin(θ)
+        points[3, i] = r * sin(φ)
 
         # Add noise
-        points[i, :] .+= randn(rng, 3) .* noise
+        points[:, i] .+= randn(rng, 3) .* noise
     end
 
     return points
@@ -376,10 +384,11 @@ end
                               rng::AbstractRNG=Random.GLOBAL_RNG) -> Matrix{Float64}
 
 Generate N points uniformly distributed in a D-dimensional unit hypercube [0,1]^D.
+Returns a matrix of size D×N (each column is a point).
 """
 function generate_uniform_hypercube(N::Int, D::Int;
                                    rng::AbstractRNG=Random.GLOBAL_RNG)
-    return rand(rng, N, D)
+    return rand(rng, D, N)
 end
 
 """
@@ -387,10 +396,11 @@ end
                                 rng::AbstractRNG=Random.GLOBAL_RNG) -> Matrix{Float64}
 
 Generate N points uniformly distributed inside a D-dimensional hypersphere.
+Returns a matrix of size D×N (each column is a point).
 """
 function generate_uniform_hypersphere(N::Int, D::Int; radius::Float64=1.0,
                                      rng::AbstractRNG=Random.GLOBAL_RNG)
-    points = zeros(N, D)
+    points = zeros(D, N)
 
     for i in 1:N
         # Generate random direction
@@ -400,7 +410,7 @@ function generate_uniform_hypersphere(N::Int, D::Int; radius::Float64=1.0,
         # Generate random radius (uniform in volume)
         r = radius * rand(rng)^(1/D)
 
-        points[i, :] = direction .* r
+        points[:, i] = direction .* r
     end
 
     return points
@@ -411,10 +421,11 @@ end
                      rng::AbstractRNG=Random.GLOBAL_RNG) -> Matrix{Float64}
 
 Generate N points from a D-dimensional Gaussian distribution.
+Returns a matrix of size D×N (each column is a point).
 """
 function generate_gaussian(N::Int, D::Int; μ::Float64=0.0, σ::Float64=1.0,
                           rng::AbstractRNG=Random.GLOBAL_RNG)
-    return μ .+ σ .* randn(rng, N, D)
+    return μ .+ σ .* randn(rng, D, N)
 end
 
 # ============================================================================
@@ -426,6 +437,7 @@ end
                  rng::AbstractRNG=Random.GLOBAL_RNG) -> Matrix{Float64}
 
 Generate N points on a line in D-dimensional space (1D manifold in high-D).
+Returns a matrix of size D×N (each column is a point).
 This is a pathological case where most space-partitioning trees struggle.
 """
 function generate_line(N::Int, D::Int; noise::Float64=0.0,
@@ -434,10 +446,10 @@ function generate_line(N::Int, D::Int; noise::Float64=0.0,
     direction = randn(rng, D)
     direction ./= norm(direction)
 
-    points = zeros(N, D)
+    points = zeros(D, N)
     for i in 1:N
         t = (i - N/2) / N  # Parameter along line
-        points[i, :] = t .* direction .+ randn(rng, D) .* noise
+        points[:, i] = t .* direction .+ randn(rng, D) .* noise
     end
 
     return points
@@ -447,6 +459,7 @@ end
     generate_grid(N::Int, D::Int; grid_size::Int=10) -> Matrix{Float64}
 
 Generate points on a regular grid in D dimensions.
+Returns a matrix of size D×N (each column is a point).
 Total points will be ≈ N (adjusted to fit grid structure).
 """
 function generate_grid(N::Int, D::Int; grid_size::Int=10)
@@ -457,16 +470,16 @@ function generate_grid(N::Int, D::Int; grid_size::Int=10)
     coords = [range(0, 1, length=points_per_dim) for _ in 1:D]
 
     # Generate all combinations (Cartesian product)
-    points = zeros(0, D)
+    points = zeros(D, 0)
     for idx in Iterators.product(coords...)
         point = collect(idx)
-        points = vcat(points, point')
-        if size(points, 1) >= N
+        points = hcat(points, point)
+        if size(points, 2) >= N
             break
         end
     end
 
-    return points[1:min(N, size(points, 1)), :]
+    return points[:, 1:min(N, size(points, 2))]
 end
 
 """
@@ -474,12 +487,13 @@ end
                             rng::AbstractRNG=Random.GLOBAL_RNG) -> Matrix{Float64}
 
 Generate N points from a highly skewed distribution.
+Returns a matrix of size D×N (each column is a point).
 First dimension has much larger variance than others.
 """
 function generate_skewed_gaussian(N::Int, D::Int; skew_factor::Float64=10.0,
                                  rng::AbstractRNG=Random.GLOBAL_RNG)
-    points = randn(rng, N, D)
-    points[:, 1] .*= skew_factor  # First dimension has high variance
+    points = randn(rng, D, N)
+    points[1, :] .*= skew_factor  # First dimension has high variance
     return points
 end
 
@@ -490,11 +504,13 @@ end
 """
     generate_dataset(dataset_type::Symbol, N::Int, D::Int; kwargs...) -> Matrix{Float64}
 
-Generate a dataset by name. Supported types:
+Generate a dataset by name. All return D×N matrices (each column is a point).
+
+Supported types:
 - :lorenz - Lorenz attractor (ignores D, always 3D)
 - :rossler - Rössler attractor (ignores D, always 3D)
 - :henon - Henon map (ignores D, always 2D)
-- :logistic - Logistic map (ignores D, always 1D, returns as N×1 matrix)
+- :logistic - Logistic map (ignores D, always 1D, returns as 1×N matrix)
 - :gaussian_mixture - Gaussian mixture model
 - :hierarchical - Hierarchical clusters
 - :swiss_roll - Swiss roll (ignores D, always 3D)
@@ -519,7 +535,7 @@ function generate_dataset(dataset_type::Symbol, N::Int, D::Int; kwargs...)
         return generate_henon_map(N; kwargs...)
     elseif dataset_type == :logistic
         data = generate_logistic_map(N; kwargs...)
-        return reshape(data, N, 1)  # Return as N×1 matrix
+        return reshape(data, 1, N)  # Return as 1×N matrix (D×N layout)
     elseif dataset_type == :gaussian_mixture
         n_clusters = get(kwargs, :n_clusters, 5)
         return generate_gaussian_mixture(N, D, n_clusters; kwargs...)

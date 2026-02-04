@@ -7,8 +7,10 @@ using Random
 
 @testset "Tree Construction" begin
     @testset "create_root_cluster" begin
-        # Simple 2D point set
-        data = Float64[0 0; 3 4; 1 1; 2 2]
+        # Simple 2D point set (D×N: 2×4)
+        # 4 points: [0,0], [3,4], [1,1], [2,2]
+        data = Float64[0 3 1 2;
+                       0 4 1 2]
         ps = PointSet(data)
 
         rng = MersenneTwister(42)
@@ -33,8 +35,8 @@ using Random
     end
 
     @testset "create_root_cluster - edge cases" begin
-        # Single point
-        data = Float64[1 2 3]
+        # Single point (3×1 matrix)
+        data = Float64[1; 2; 3;;]
         ps = PointSet(data)
         root, permutation = create_root_cluster(ps)
 
@@ -42,8 +44,9 @@ using Random
         @test permutation[1].distance == 0.0
         @test root.Rmax == 0.0
 
-        # Two points
-        data = Float64[0 0; 1 1]
+        # Two points: [0,0], [1,1] (2×2 matrix)
+        data = Float64[0 1;
+                       0 1]
         ps = PointSet(data)
         root, permutation = create_root_cluster(ps)
 
@@ -52,7 +55,9 @@ using Random
     end
 
     @testset "find_child_cluster_centers!" begin
-        data = Float64[0 0; 5 0; 0 5; 5 5]
+        # 4 points: [0,0], [5,0], [0,5], [5,5] (2×4 matrix)
+        data = Float64[0 5 0 5;
+                       0 0 5 5]
         ps = PointSet(data)
 
         root, permutation = create_root_cluster(ps, MersenneTwister(1))
@@ -68,8 +73,9 @@ using Random
     end
 
     @testset "find_child_cluster_centers! - degenerate case" begin
-        # All points identical
-        data = Float64[1 1; 1 1; 1 1]
+        # All points identical: 3 copies of [1,1] (2×3 matrix)
+        data = Float64[1 1 1;
+                       1 1 1]
         ps = PointSet(data)
 
         root, permutation = create_root_cluster(ps)
@@ -84,8 +90,10 @@ using Random
     end
 
     @testset "assign_points_to_centers!" begin
-        # Four points in corners of square
-        data = Float64[0 0; 10 0; 0 10; 10 10]
+        # Four points in corners of square (2×4 matrix)
+        # [0,0], [10,0], [0,10], [10,10]
+        data = Float64[0 10 0 10;
+                       0 0 10 10]
         ps = PointSet(data)
 
         # Use opposite corners as centers
@@ -127,8 +135,8 @@ using Random
     end
 
     @testset "ATRIA construction - small dataset" begin
-        # 10 points in 2D
-        data = randn(MersenneTwister(42), 10, 2)
+        # 10 points in 2D (D×N: 2×10)
+        data = randn(MersenneTwister(42), 2, 10)
         ps = PointSet(data)
 
         tree = ATRIATree(ps, min_points=3)
@@ -141,7 +149,9 @@ using Random
     end
 
     @testset "ATRIA construction - verify permutation" begin
-        data = Float64[1 1; 2 2; 3 3; 4 4; 5 5]
+        # 5 points: [1,1], [2,2], [3,3], [4,4], [5,5] (2×5 matrix)
+        data = Float64[1 2 3 4 5;
+                       1 2 3 4 5]
         ps = PointSet(data)
 
         tree = ATRIATree(ps, min_points=2)
@@ -155,7 +165,7 @@ using Random
     end
 
     @testset "ATRIA construction - min_points effect" begin
-        data = randn(MersenneTwister(123), 100, 3)
+        data = randn(MersenneTwister(123), 3, 100)  # D×N: 3×100
         ps = PointSet(data)
 
         tree_large_min = ATRIATree(ps, min_points=50)
@@ -171,7 +181,7 @@ using Random
 
     @testset "ATRIA construction - different dimensions" begin
         for D in [1, 2, 5, 10, 20]
-            data = randn(MersenneTwister(42), 100, D)
+            data = randn(MersenneTwister(42), D, 100)  # D×N
             ps = PointSet(data)
 
             tree = ATRIATree(ps, min_points=10)
@@ -183,7 +193,7 @@ using Random
     end
 
     @testset "ATRIA construction - single point" begin
-        data = Float64[1 2 3]
+        data = Float64[1; 2; 3;;]  # 1 point in 3D (3×1 matrix)
         ps = PointSet(data)
 
         tree = ATRIATree(ps, min_points=10)
@@ -196,8 +206,9 @@ using Random
     end
 
     @testset "ATRIA construction - few points" begin
-        # Fewer points than min_points
-        data = Float64[1 1; 2 2; 3 3]
+        # Fewer points than min_points: 3 points [1,1], [2,2], [3,3] (2×3 matrix)
+        data = Float64[1 2 3;
+                       1 2 3]
         ps = PointSet(data)
 
         tree = ATRIATree(ps, min_points=10)
@@ -209,7 +220,7 @@ using Random
     end
 
     @testset "ATRIA construction - validation" begin
-        data = randn(10, 3)
+        data = randn(3, 10)  # D×N
         ps = PointSet(data)
 
         # Invalid min_points
@@ -222,7 +233,7 @@ using Random
     end
 
     @testset "Tree invariants" begin
-        data = randn(MersenneTwister(42), 50, 3)
+        data = randn(MersenneTwister(42), 3, 50)  # D×N
         ps = PointSet(data)
         tree = ATRIATree(ps, min_points=5)
 
@@ -261,7 +272,7 @@ using Random
 
     @testset "tree_depth" begin
         # Shallow tree (large min_points)
-        data = randn(MersenneTwister(42), 100, 3)
+        data = randn(MersenneTwister(42), 3, 100)  # D×N
         ps = PointSet(data)
 
         tree_shallow = ATRIATree(ps, min_points=50)
@@ -274,14 +285,14 @@ using Random
         @test depth_deep >= depth_shallow  # Deeper tree with smaller min_points
 
         # Single point has depth 0
-        data_single = Float64[1 2]
+        data_single = Float64[1; 2;;]  # 1 point in 2D (2×1 matrix)
         ps_single = PointSet(data_single)
         tree_single = ATRIATree(ps_single)
         @test tree_depth(tree_single) == 0
     end
 
     @testset "count_nodes" begin
-        data = randn(MersenneTwister(42), 50, 3)
+        data = randn(MersenneTwister(42), 3, 50)  # D×N
         ps = PointSet(data)
         tree = ATRIATree(ps, min_points=10)
 
@@ -290,7 +301,7 @@ using Random
     end
 
     @testset "average_terminal_size" begin
-        data = randn(MersenneTwister(42), 100, 3)
+        data = randn(MersenneTwister(42), 3, 100)  # D×N
         ps = PointSet(data)
 
         tree = ATRIATree(ps, min_points=10)
@@ -299,15 +310,16 @@ using Random
         @test avg_size > 0.0
         @test avg_size <= tree.min_points  # Should be at most min_points
 
-        # Single terminal node
-        data_small = Float64[1 1; 2 2; 3 3]
+        # Single terminal node: 3 points (2×3 matrix)
+        data_small = Float64[1 2 3;
+                             1 2 3]
         ps_small = PointSet(data_small)
         tree_small = ATRIATree(ps_small, min_points=10)
         @test average_terminal_size(tree_small) == 3.0
     end
 
     @testset "print_tree_stats" begin
-        data = randn(MersenneTwister(42), 50, 5)
+        data = randn(MersenneTwister(42), 5, 50)  # D×N: 5×50
         ps = PointSet(data)
         tree = ATRIATree(ps, min_points=8)
 
@@ -336,7 +348,7 @@ using Random
     end
 
     @testset "Reproducibility with RNG" begin
-        data = randn(100, 3)
+        data = randn(3, 100)  # D×N
         ps = PointSet(data)
 
         # Same seed should give same tree
@@ -353,8 +365,8 @@ using Random
     end
 
     @testset "Large dataset" begin
-        # Test with larger dataset
-        data = randn(MersenneTwister(42), 1000, 10)
+        # Test with larger dataset (D×N: 10×1000)
+        data = randn(MersenneTwister(42), 10, 1000)
         ps = PointSet(data)
 
         tree = ATRIATree(ps, min_points=32)
@@ -370,13 +382,10 @@ using Random
 
     @testset "Cluster subdivision correctness" begin
         # Verify that subdivision actually separates points in space
+        # 6 points: two clusters at x=0 and x=10 (2×6 matrix)
         data = Float64[
-            0 0;
-            0 1;
-            0 2;
-            10 0;
-            10 1;
-            10 2
+            0 0 0 10 10 10;
+            0 1 2 0  1  2
         ]
         ps = PointSet(data)
 

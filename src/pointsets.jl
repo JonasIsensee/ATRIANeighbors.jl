@@ -62,15 +62,18 @@ abstract type AbstractPointSet{T,D,M<:Metric} end
 
 Standard point set backed by a matrix.
 
-The data matrix is N × D where each row is a point.
+The data matrix is D × N where each column is a point (column-major for cache efficiency).
+This layout matches NearestNeighbors.jl convention and provides contiguous memory access
+when iterating over dimensions of a single point.
 
 # Fields
-- `data::Matrix{T}`: N × D matrix of points (row-major)
+- `data::Matrix{T}`: D × N matrix of points (each column is a point)
 - `metric::M`: Distance metric to use
 
 # Example
 ```julia
-data = [0.0 0.0; 3.0 4.0; 1.0 1.0]  # 3 points in 2D
+data = [0.0 3.0 1.0;   # x coordinates
+        0.0 4.0 1.0]   # y coordinates  -> 3 points in 2D
 ps = PointSet(data, EuclideanMetric())
 ```
 """
@@ -90,16 +93,18 @@ PointSet(data::Matrix{T}) where {T} = PointSet(data, EuclideanMetric())
     size(ps::PointSet) -> Tuple{Int, Int}
 
 Return (N, D) where N is the number of points and D is the dimension.
+Note: Internal storage is D×N for cache efficiency, but this returns (N, D) for API consistency.
 """
-Base.size(ps::PointSet) = size(ps.data)
+Base.size(ps::PointSet) = reverse(size(ps.data))
 
 """
     getpoint(ps::PointSet, i::Int)
 
 Get the i-th point as a view (zero-copy).
+Returns a contiguous column view for cache-efficient access.
 """
 @inline function getpoint(ps::PointSet, i::Int)
-    return view(ps.data, i, :)
+    return view(ps.data, :, i)
 end
 
 """
@@ -121,7 +126,7 @@ Compute distance between the i-th point and an external query point.
 @inline function distance(ps::PointSet, i::Int, query)
     # Specialized implementation for EuclideanMetric to avoid view overhead
     if ps.metric isa EuclideanMetric
-        return _euclidean_distance_row(ps.data, i, query)
+        return _euclidean_distance_col(ps.data, i, query)
     else
         p = getpoint(ps, i)
         return distance(ps.metric, p, query)
@@ -136,44 +141,44 @@ Compute distance with early termination threshold.
 @inline function distance(ps::PointSet, i::Int, query, thresh::Float64)
     # Specialized implementation for EuclideanMetric to avoid view overhead
     if ps.metric isa EuclideanMetric
-        return _euclidean_distance_row_thresh(ps.data, i, query, thresh)
+        return _euclidean_distance_col_thresh(ps.data, i, query, thresh)
     else
         p = getpoint(ps, i)
         return distance(ps.metric, p, query, thresh)
     end
 end
 
-# Specialized implementations for Euclidean distance that work directly with matrix rows
-# This avoids the overhead of creating views
+# Specialized implementations for Euclidean distance that work directly with matrix columns
+# D×N layout: each column is a point, contiguous in memory for cache efficiency
 
 """
-    _euclidean_distance_row(data::Matrix, row::Int, query) -> Float64
+    _euclidean_distance_col(data::Matrix, col::Int, query) -> Float64
 
-Compute Euclidean distance between a row of data and a query point.
-Optimized to avoid view overhead.
+Compute Euclidean distance between a column of data and a query point.
+Optimized for D×N layout where columns are points (contiguous memory access).
 """
-@inline function _euclidean_distance_row(data::Matrix{T}, row::Int, query) where T
+@inline function _euclidean_distance_col(data::Matrix{T}, col::Int, query) where T
     sum_sq = zero(T)
-    @turbo for j in 1:size(data, 2)
-        diff = data[row, j] - query[j]
+    @turbo for j in 1:size(data, 1)
+        diff = data[j, col] - query[j]
         sum_sq += diff * diff
     end
     return sqrt(sum_sq)
 end
 
 """
-    _euclidean_distance_row_thresh(data::Matrix, row::Int, query, thresh::Float64) -> Float64
+    _euclidean_distance_col_thresh(data::Matrix, col::Int, query, thresh::Float64) -> Float64
 
 Compute Euclidean distance with early termination.
-Optimized to avoid view overhead.
+Optimized for D×N layout where columns are points (contiguous memory access).
 """
-@inline function _euclidean_distance_row_thresh(data::Matrix{T}, row::Int, query, thresh::Float64) where T
+@inline function _euclidean_distance_col_thresh(data::Matrix{T}, col::Int, query, thresh::Float64) where T
     thresh_sq = thresh * thresh
     sum_sq = zero(T)
 
     # Note: Cannot use @simd here due to early termination
-    @inbounds for j in 1:size(data, 2)
-        diff = data[row, j] - query[j]
+    @inbounds for j in 1:size(data, 1)
+        diff = data[j, col] - query[j]
         sum_sq += diff * diff
         # Early termination
         if sum_sq > thresh_sq

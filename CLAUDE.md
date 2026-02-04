@@ -156,12 +156,14 @@ All metrics support **partial distance calculation**: early termination when dis
 ### Point Set Abstractions
 
 The `AbstractPointSet` interface allows different point storage formats:
-- **PointSet**: Standard N×D matrix (each row is a point)
+- **PointSet**: D×N matrix (each column is a point) - matches NearestNeighbors.jl convention for cache-efficient access
 - **EmbeddedTimeSeries**: On-the-fly time-delay embedding (memory efficient for time series analysis)
 
+**Memory Layout**: Uses D×N (columns = points) for optimal cache locality when computing distances. Accessing all dimensions of a point is contiguous in memory.
+
 All point sets expose:
-- `size(ps)`: Returns (N, D)
-- `getpoint(ps, i)`: Returns point i
+- `size(ps)`: Returns (N, D) - number of points and dimensions (semantic, not storage order)
+- `getpoint(ps, i)`: Returns point i as a column view
 - `distance(ps, i, j)`: Distance between two point indices
 - `distance(ps, i, query_point)`: Distance from index to external point
 
@@ -213,9 +215,10 @@ All point sets expose:
 ```julia
 using ATRIANeighbors
 
-# ✅ GOOD: Simple usage with matrix data
-data = randn(1000, 10)
+# ✅ GOOD: Simple usage with matrix data (D×N layout: columns are points)
+data = randn(10, 1000)  # 1000 points in 10D
 tree = ATRIATree(data)
+query = randn(10)
 neighbors = knn(tree, query, k=10)
 
 # ✅ GOOD: Time series with delay embedding (low intrinsic dimension)
@@ -225,10 +228,10 @@ tree = ATRIATree(ps)
 neighbors = knn(tree, query, k=10)  # 3x faster than brute force
 
 # ❌ BAD: Random high-dimensional data
-data = randn(10000, 100)  # No structure
+data = randn(100, 10000)  # 10000 points in 100D (no structure)
 # Don't use ATRIA! Use NearestNeighbors.jl instead:
 # using NearestNeighbors
-# kdtree = KDTree(data')
+# kdtree = KDTree(data)  # Same D×N layout
 # neighbors = knn(kdtree, query, 10)
 ```
 

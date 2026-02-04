@@ -477,8 +477,8 @@ Construct an ATRIA tree for efficient nearest neighbor search from a point set.
 
 # Example
 ```julia
-# Direct construction from matrix
-data = randn(1000, 10)
+# Direct construction from matrix (D×N layout: columns are points)
+data = randn(10, 1000)  # 1000 points in 10D
 tree = ATRIATree(data)
 
 # Advanced: custom point set with time-delay embedding
@@ -521,7 +521,7 @@ time-delay embeddings, construct an EmbeddedTimeSeries first and use the
 AbstractPointSet constructor.
 
 # Arguments
-- `data`: N × D matrix where each row is a point
+- `data`: D × N matrix where each column is a point (matches NearestNeighbors.jl convention)
 - `metric`: Distance metric to use (default: Euclidean)
 - `min_points`: Minimum points per cluster before subdivision stops (default: 64)
 - `rng`: Random number generator for center selection (default: global RNG)
@@ -531,8 +531,8 @@ AbstractPointSet constructor.
 
 # Example
 ```julia
-# Simple: construct with default Euclidean metric
-data = randn(1000, 10)
+# Simple: construct with default Euclidean metric (3D points)
+data = randn(3, 1000)  # 1000 points in 3D
 tree = ATRIATree(data)
 
 # With custom metric and parameters

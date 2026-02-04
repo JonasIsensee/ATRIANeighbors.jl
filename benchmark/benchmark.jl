@@ -56,7 +56,7 @@ function cmd_quick()
     # Test 1: Random uniform data (worst case for trees)
     println("\n1. RANDOM UNIFORM DATA (worst case)")
     println("-"^80)
-    data_uniform = randn(N, D)
+    data_uniform = randn(D, N)  # D×N layout
     ps_uniform = PointSet(data_uniform, EuclideanMetric())
     tree_uniform = ATRIATree(ps_uniform, min_points=10)
     query_uniform = randn(D)
@@ -77,19 +77,19 @@ function cmd_quick()
     println("-"^80)
     n_clusters = 10
     points_per_cluster = N ÷ n_clusters
-    data_clustered = zeros(N, D)
+    data_clustered = zeros(D, N)  # D×N layout
 
     for i in 1:n_clusters
         center = randn(D) * 10.0
         start_idx = (i-1) * points_per_cluster + 1
         end_idx = min(i * points_per_cluster, N)
         n_points = end_idx - start_idx + 1
-        data_clustered[start_idx:end_idx, :] = center' .+ randn(n_points, D) * 0.3
+        data_clustered[:, start_idx:end_idx] = center .+ randn(D, n_points) * 0.3
     end
 
     ps_clustered = PointSet(data_clustered, EuclideanMetric())
     tree_clustered = ATRIATree(ps_clustered, min_points=10)
-    query_clustered = data_clustered[1, :] + randn(D) * 0.1
+    query_clustered = data_clustered[:, 1] + randn(D) * 0.1
 
     _, stats_clustered = ATRIANeighbors.knn(tree_clustered, query_clustered, k=k, track_stats=true)
     println("Distance calculations: $(stats_clustered.distance_calcs) / $N")
@@ -107,19 +107,19 @@ function cmd_quick()
     println("-"^80)
     n_clusters_many = 100
     points_per_cluster_small = N ÷ n_clusters_many
-    data_very_clustered = zeros(N, D)
+    data_very_clustered = zeros(D, N)  # D×N layout
 
     for i in 1:n_clusters_many
         center = randn(D) * 20.0
         start_idx = (i-1) * points_per_cluster_small + 1
         end_idx = min(i * points_per_cluster_small, N)
         n_points = end_idx - start_idx + 1
-        data_very_clustered[start_idx:end_idx, :] = center' .+ randn(n_points, D) * 0.1
+        data_very_clustered[:, start_idx:end_idx] = center .+ randn(D, n_points) * 0.1
     end
 
     ps_very_clustered = PointSet(data_very_clustered, EuclideanMetric())
     tree_very_clustered = ATRIATree(ps_very_clustered, min_points=10)
-    query_very_clustered = data_very_clustered[1, :] + randn(D) * 0.05
+    query_very_clustered = data_very_clustered[:, 1] + randn(D) * 0.05
 
     _, stats_very_clustered = ATRIANeighbors.knn(tree_very_clustered, query_very_clustered, k=k, track_stats=true)
     println("Distance calculations: $(stats_very_clustered.distance_calcs) / $N")
@@ -153,7 +153,7 @@ function cmd_readme()
     println()
 
     # Configuration
-    N = 50_000
+    N = 200_000
     D = 3
     k = 10
     n_queries = 100
@@ -166,20 +166,20 @@ function cmd_readme()
     println("  Data type:       Lorenz attractor (fractal dimension ≈ 2.06)")
     println()
 
-    # Generate Lorenz data
+    # Generate Lorenz data (returns D×N matrix)
     println("Generating Lorenz attractor data...")
     rng = MersenneTwister(42)
-    data = generate_dataset(:lorenz, N, D, rng=rng)
+    data = generate_dataset(:lorenz, N, D, rng=rng)  # 3×N matrix
 
-    # Generate queries
+    # Generate queries (D×n_queries matrix)
     query_indices = rand(rng, 1:N, n_queries)
-    queries = copy(data[query_indices, :])
+    queries = copy(data[:, query_indices])  # D×n_queries
     queries .+= randn(rng, size(queries)...) .* 0.01
 
     println("Building trees...")
     println()
 
-    # ATRIA
+    # ATRIA (already uses D×N layout)
     println("ATRIA:")
     ps = PointSet(data, EuclideanMetric())
     atria_build = @benchmark ATRIATree($ps, min_points=64) samples=5
@@ -187,28 +187,29 @@ function cmd_readme()
 
     function atria_queries()
         for i in 1:n_queries
-            ATRIANeighbors.knn(tree_atria, queries[i, :], k=k)
+            ATRIANeighbors.knn(tree_atria, @view(queries[:, i]), k=k)
         end
     end
-    atria_query = @benchmark $atria_queries() samples=20
+    atria_queries()
+    atria_query = @benchmark ATRIANeighbors.knn($tree_atria, $queries, k=$k) samples=20
     atria_build_time = median(atria_build).time / 1e6
     atria_query_time = (median(atria_query).time / 1e6) / n_queries
     println("  Build time:  $(round(atria_build_time, digits=2)) ms")
     println("  Query time:  $(round(atria_query_time, digits=4)) ms")
     println()
 
-    # KDTree
+    # KDTree (also uses D×N layout)
     println("KDTree:")
-    data_transposed = Matrix(data')
-    kdtree_build = @benchmark NN.KDTree($data_transposed, leafsize=10) samples=5
-    tree_kd = NN.KDTree(data_transposed, leafsize=10)
+    kdtree_build = @benchmark NN.KDTree($data, leafsize=10) samples=5
+    tree_kd = NN.KDTree(data, leafsize=10)
 
     function kdtree_queries()
         for i in 1:n_queries
-            NN.knn(tree_kd, queries[i, :], k)
+            NN.knn(tree_kd, @view(queries[:, i]), k)
         end
     end
-    kdtree_query = @benchmark $kdtree_queries() samples=20
+    kdtree_queries()
+    kdtree_query = @benchmark NN.knn($tree_kd, $queries, $k) samples=20
     kdtree_build_time = median(kdtree_build).time / 1e6
     kdtree_query_time = (median(kdtree_query).time / 1e6) / n_queries
     println("  Build time:  $(round(kdtree_build_time, digits=2)) ms")
@@ -217,15 +218,15 @@ function cmd_readme()
 
     # BallTree
     println("BallTree:")
-    balltree_build = @benchmark NN.BallTree($data_transposed, leafsize=10) samples=5
-    tree_ball = NN.BallTree(data_transposed, leafsize=10)
+    balltree_build = @benchmark NN.BallTree($data, leafsize=10) samples=5
+    tree_ball = NN.BallTree(data, leafsize=10)
 
     function balltree_queries()
         for i in 1:n_queries
-            NN.knn(tree_ball, queries[i, :], k)
+            NN.knn(tree_ball, @view(queries[:, i]), k)
         end
     end
-    balltree_query = @benchmark $balltree_queries() samples=20
+    balltree_query = @benchmark NN.knn($tree_ball, $queries, $k) samples=20
     balltree_build_time = median(balltree_build).time / 1e6
     balltree_query_time = (median(balltree_query).time / 1e6) / n_queries
     println("  Build time:  $(round(balltree_build_time, digits=2)) ms")
@@ -236,10 +237,10 @@ function cmd_readme()
     println("Brute force:")
     function brute_queries()
         for i in 1:n_queries
-            brute_knn(ps, queries[i, :], k)
+            brute_knn(ps, @view(queries[:, i]), k)
         end
     end
-    brute_query = @benchmark $brute_queries() samples=10
+    brute_query = @benchmark brute_knn($ps, $queries, $k) samples=10
     brute_query_time = (median(brute_query).time / 1e6) / n_queries
     println("  Build time:  - (no preprocessing)")
     println("  Query time:  $(round(brute_query_time, digits=4)) ms")
@@ -285,9 +286,9 @@ function cmd_profile_alloc()
     println("ALLOCATION PROFILING (with SearchContext reuse)")
     println("="^80)
 
-    # Create test dataset
+    # Create test dataset (D×N layout)
     N, D = 1000, 20
-    data = randn(N, D)
+    data = randn(D, N)
 
     println("\nDataset: N=$N, D=$D")
     println("Building ATRIA tree...")

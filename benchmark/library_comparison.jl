@@ -84,6 +84,7 @@ end
     build_tree_with_config(config::LibraryBenchmarkConfig, data::Matrix{Float64})
 
 Build a search structure based on the algorithm in config.
+All data is in D×N format (columns are points).
 """
 function build_tree_with_config(config::LibraryBenchmarkConfig, data::Matrix{Float64})
     if config.algorithm == :ATRIA
@@ -93,18 +94,16 @@ function build_tree_with_config(config::LibraryBenchmarkConfig, data::Matrix{Flo
         if !HNSW_AVAILABLE
             error("HNSW.jl not available")
         end
-        # HNSW expects data in D×N format
-        data_transposed = Matrix(data')
-        return HierarchicalNSW(data_transposed; M=config.hnsw_M, efConstruction=config.hnsw_ef_construction, ef=config.hnsw_ef_search)
+        # HNSW expects data in D×N format (same as our layout)
+        return HierarchicalNSW(data; M=config.hnsw_M, efConstruction=config.hnsw_ef_construction, ef=config.hnsw_ef_search)
     else
-        # NearestNeighbors.jl algorithms expect D×N format
-        data_transposed = Matrix(data')
+        # NearestNeighbors.jl algorithms expect D×N format (same as our layout)
         if config.algorithm == :KDTree
-            return KDTree(data_transposed, leafsize=config.leaf_size)
+            return KDTree(data, leafsize=config.leaf_size)
         elseif config.algorithm == :BallTree
-            return BallTree(data_transposed, leafsize=config.leaf_size)
+            return BallTree(data, leafsize=config.leaf_size)
         elseif config.algorithm == :BruteTree
-            return BruteTree(data_transposed)
+            return BruteTree(data)
         else
             error("Unknown algorithm: $(config.algorithm)")
         end
@@ -125,10 +124,11 @@ end
     benchmark_query_time_lib(config::LibraryBenchmarkConfig, tree, queries::Matrix{Float64}) -> Tuple{Float64, Int, Dict}
 
 Benchmark query time for all libraries.
+Queries is in D×N format (each column is a query point).
 Returns (median_query_time_seconds, estimated_distance_computations, metadata).
 """
 function benchmark_query_time_lib(config::LibraryBenchmarkConfig, tree, queries::Matrix{Float64})
-    n_queries = size(queries, 1)
+    n_queries = size(queries, 2)  # Number of columns = number of queries
     k = config.k
 
     # Normalize modes
@@ -138,9 +138,8 @@ function benchmark_query_time_lib(config::LibraryBenchmarkConfig, tree, queries:
     threads_used = threading == :multi ? threads_available : 1
     threading = (threading == :multi && threads_available > 1) ? :multi : :single
 
-    # Shared query representations
-    query_rows = collect(eachrow(queries))  # views over rows for ATRIA batch path
-    query_matrix_T = Matrix(queries')        # D × Q for NearestNeighbors batch path
+    # Shared query representations (already in D×N format)
+    query_cols = [(@view queries[:, i]) for i in 1:n_queries]  # views over columns
 
     if config.algorithm == :ATRIA
         avg_dist_calcs = config.N  # Placeholder until we add instrumentation
@@ -149,7 +148,7 @@ function benchmark_query_time_lib(config::LibraryBenchmarkConfig, tree, queries:
             function run_atria_single_serial()
                 ctx = SearchContext(tree, k)
                 for i in 1:n_queries
-                    ATRIANeighbors.knn(tree, queries[i, :], k=k, ctx=ctx)
+                    ATRIANeighbors.knn(tree, (@view queries[:, i]), k=k, ctx=ctx)
                 end
             end
             result = @benchmark $run_atria_single_serial() samples=config.trials
@@ -158,20 +157,20 @@ function benchmark_query_time_lib(config::LibraryBenchmarkConfig, tree, queries:
             function run_atria_single_threaded()
                 Threads.@threads for i in 1:n_queries
                     local_ctx = SearchContext(tree, k)
-                    ATRIANeighbors.knn(tree, queries[i, :], k=k, ctx=local_ctx)
+                    ATRIANeighbors.knn(tree, (@view queries[:, i]), k=k, ctx=local_ctx)
                 end
             end
             result = @benchmark $run_atria_single_threaded() samples=config.trials
 
         elseif query_mode == :batch && threading == :single
             function run_atria_batch_serial()
-                knn_batch(tree, query_rows, k=k)
+                knn_batch(tree, query_cols, k=k)
             end
             result = @benchmark $run_atria_batch_serial() samples=config.trials
 
         elseif query_mode == :batch && threading == :multi
             function run_atria_batch_parallel()
-                knn_batch_parallel(tree, query_rows, k=k)
+                knn_batch_parallel(tree, query_cols, k=k)
             end
             result = @benchmark $run_atria_batch_parallel() samples=config.trials
         else
@@ -188,27 +187,27 @@ function benchmark_query_time_lib(config::LibraryBenchmarkConfig, tree, queries:
         if threading == :single
             function run_hnsw_serial()
                 for i in 1:n_queries
-                    HNSW.knn_search(tree, queries[i, :], k)
+                    HNSW.knn_search(tree, (@view queries[:, i]), k)
                 end
             end
             result = @benchmark $run_hnsw_serial() samples=config.trials
         else
             function run_hnsw_threaded()
                 Threads.@threads for i in 1:n_queries
-                    HNSW.knn_search(tree, queries[i, :], k)
+                    HNSW.knn_search(tree, (@view queries[:, i]), k)
                 end
             end
             result = @benchmark $run_hnsw_threaded() samples=config.trials
         end
 
     else
-        # NearestNeighbors.jl queries
+        # NearestNeighbors.jl queries (also uses D×N format)
         avg_dist_calcs = config.algorithm == :BruteTree ? config.N : config.N ÷ 2
 
         if query_mode == :single && threading == :single
             function run_nn_single_serial()
                 for i in 1:n_queries
-                    NearestNeighbors.knn(tree, queries[i, :], k)
+                    NearestNeighbors.knn(tree, (@view queries[:, i]), k)
                 end
             end
             result = @benchmark $run_nn_single_serial() samples=config.trials
@@ -216,21 +215,21 @@ function benchmark_query_time_lib(config::LibraryBenchmarkConfig, tree, queries:
         elseif query_mode == :single && threading == :multi
             function run_nn_single_threaded()
                 Threads.@threads for i in 1:n_queries
-                    NearestNeighbors.knn(tree, queries[i, :], k)
+                    NearestNeighbors.knn(tree, (@view queries[:, i]), k)
                 end
             end
             result = @benchmark $run_nn_single_threaded() samples=config.trials
 
         elseif query_mode == :batch && threading == :single
             function run_nn_batch_serial()
-                NearestNeighbors.knn(tree, query_matrix_T, k, true)
+                NearestNeighbors.knn(tree, queries, k, true)  # Already D×N
             end
             result = @benchmark $run_nn_batch_serial() samples=config.trials
 
         elseif query_mode == :batch && threading == :multi
             function run_nn_batch_threaded()
                 Threads.@threads for i in 1:n_queries
-                    NearestNeighbors.knn(tree, queries[i, :], k)
+                    NearestNeighbors.knn(tree, (@view queries[:, i]), k)
                 end
             end
             result = @benchmark $run_nn_batch_threaded() samples=config.trials
@@ -288,13 +287,13 @@ function run_library_benchmark(config::LibraryBenchmarkConfig; verbose::Bool=tru
 
     verbose && @info "Running benchmark: $(config.algorithm) on $(config.dataset_type) (N=$(config.N), D=$(config.D), k=$(config.k), query_mode=$(config.query_mode), threading=$(config.threading))"
 
-    # Generate dataset
+    # Generate dataset (returns D×N matrix)
     rng = MersenneTwister(42)  # Fixed seed for reproducibility
     data = generate_dataset(config.dataset_type, config.N, config.D, rng=rng)
 
-    # Generate query points
+    # Generate query points (D×n_queries matrix)
     query_indices = rand(rng, 1:config.N, config.n_queries)
-    queries = copy(data[query_indices, :])
+    queries = copy(data[:, query_indices])  # D×n_queries
     queries .+= randn(rng, size(queries)...) .* 0.01  # Small noise
 
     # Build tree and benchmark construction
