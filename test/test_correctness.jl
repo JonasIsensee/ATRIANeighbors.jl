@@ -1,11 +1,11 @@
 using Test
 using ATRIANeighbors
+using ATRIANeighbors: EuclideanMetric, MaximumMetric, ExponentiallyWeightedEuclidean
+using ATRIANeighbors: knn, knn_batch, range_search, count_range
+using ATRIANeighbors: brute_knn, brute_range_search, brute_count_range
 using StableRNGs
 using NearestNeighbors
 import NearestNeighbors as NN
-
-# Resolve name conflicts: explicitly use ATRIANeighbors functions
-using ATRIANeighbors: knn, knn_batch, range_search, count_range, brute_knn, brute_range_search, brute_count_range
 
 """
 Comprehensive correctness tests validating ATRIA against both:

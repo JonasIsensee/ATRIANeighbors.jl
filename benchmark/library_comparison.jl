@@ -18,6 +18,7 @@ Pkg.activate(@__DIR__)
 
 # Core dependencies
 using ATRIANeighbors
+using ATRIANeighbors: EuclideanMetric, knn_batch, knn_batch_parallel
 using BenchmarkTools
 using NearestNeighbors
 using Random

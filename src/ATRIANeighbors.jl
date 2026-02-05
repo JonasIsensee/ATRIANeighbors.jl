@@ -2,16 +2,10 @@ module ATRIANeighbors
 
 # Core data structures
 include("structures.jl")
-export Neighbor, Cluster, SearchItem, SortedNeighborTable
-export is_terminal, init_search!, finish_search
+export Neighbor
 
 # Distance metrics
 include("metrics.jl")
-export Metric
-export EuclideanMetric, SquaredEuclideanMetric, MaximumMetric
-export ExponentiallyWeightedEuclidean
-export Euclidean, SquaredEuclidean, Maximum, Chebyshev, ChebyshevMetric
-export distance
 
 # Point set abstractions
 include("pointsets.jl")
@@ -21,7 +15,7 @@ export getpoint
 # ATRIA tree construction
 include("tree.jl")
 export ATRIATree
-export tree_depth, count_nodes, average_terminal_size, print_tree_stats
+export print_tree_stats
 
 # MinHeap for efficient priority queue operations
 include("minheap.jl")
@@ -32,10 +26,9 @@ export range_search, count_range
 
 # Main search implementation (allocation-optimized)
 include("search_optimized.jl")
-export knn, knn_batch, knn_batch_parallel, SearchContext
+export knn, SearchContext
 
-# Brute force reference implementation
+# Brute force reference implementation (not exported — use ATRIANeighbors.brute_knn etc.)
 include("brute.jl")
-export brute_knn, brute_knn_batch, brute_range_search, brute_count_range
 
 end # module ATRIANeighbors

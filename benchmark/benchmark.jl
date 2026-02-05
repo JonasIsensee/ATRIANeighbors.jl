@@ -24,6 +24,7 @@ using Pkg
 Pkg.activate(@__DIR__)
 
 using ATRIANeighbors
+using ATRIANeighbors: EuclideanMetric, brute_knn
 using BenchmarkTools
 using Random
 using Printf

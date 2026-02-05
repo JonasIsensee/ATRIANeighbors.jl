@@ -1,8 +1,9 @@
 using Test
 using ATRIANeighbors
+using ATRIANeighbors: Cluster, is_terminal, distance
+using ATRIANeighbors: tree_depth, count_nodes, average_terminal_size
 using ATRIANeighbors: create_root_cluster, find_child_cluster_centers!
 using ATRIANeighbors: assign_points_to_centers!, build_tree!
-using ATRIANeighbors: tree_depth, count_nodes, average_terminal_size
 using Random
 
 @testset "Tree Construction" begin

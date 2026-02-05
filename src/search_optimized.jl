@@ -173,8 +173,9 @@ end
 ```
 
 # Note
-For multiple query points, use `knn_batch` or pass a matrix as the query argument.
-Passing a matrix to this function will automatically dispatch to batch processing.
+For multiple query points, pass a matrix as the query argument.
+`knn(tree, matrix, k=10)` dispatches to batch processing automatically.
+Use `parallel=true` for multi-threaded batch search.
 """
 function knn(tree::ATRIATree, query_point::AbstractVector;
             k::Int=1,
@@ -207,32 +208,42 @@ function knn(tree::ATRIATree, query_point::AbstractVector;
 end
 
 """
-    knn(tree::ATRIATree, queries::AbstractMatrix; kwargs...)
+    knn(tree::ATRIATree, queries::AbstractMatrix; k=1, parallel=false, kwargs...)
 
-Convenience method for batch queries. When passed a matrix, each column is treated
-as a query point and batch processing is used.
+Batch k-NN search. Each column of `queries` is treated as a query point.
 
 # Arguments
 - `tree::ATRIATree`: The ATRIA tree to search
 - `queries::AbstractMatrix`: D × N matrix where each column is a query point
-- All other keyword arguments are passed to `knn_batch`
+- `k::Int`: Number of nearest neighbors (default: 1)
+- `parallel::Bool`: Use multi-threaded search (default: false). Requires `julia --threads=auto`.
+- `epsilon::Float64`: Approximation parameter (0.0 = exact search)
+- `exclude_range::Tuple{Int,Int}`: Exclude points in range [first, last] from results
+- `track_stats::Bool`: If true, return (results, stats_list)
 
 # Returns
 - Vector of neighbor lists (one per query column)
 
 # Example
 ```julia
-queries = randn(D, 100)  # 100 query points in D dimensions
-results = knn(tree, queries, k=10)  # Returns Vector{Vector{Neighbor}}
+queries = randn(D, 100)
+results = knn(tree, queries, k=10)                # sequential
+results = knn(tree, queries, k=10, parallel=true)  # multi-threaded
 ```
 """
 function knn(tree::ATRIATree, queries::AbstractMatrix;
             k::Int=1,
             epsilon::Float64=0.0,
             exclude_range::Tuple{Int,Int}=(-1,-1),
-            track_stats::Bool=false)
-    return knn_batch(tree, queries, k=k, epsilon=epsilon,
-                     exclude_range=exclude_range, track_stats=track_stats)
+            track_stats::Bool=false,
+            parallel::Bool=false)
+    if parallel
+        return knn_batch_parallel(tree, queries, k=k, epsilon=epsilon,
+                                  exclude_range=exclude_range, track_stats=track_stats)
+    else
+        return knn_batch(tree, queries, k=k, epsilon=epsilon,
+                         exclude_range=exclude_range, track_stats=track_stats)
+    end
 end
 
 """

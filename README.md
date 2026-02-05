@@ -123,15 +123,14 @@ indices = [n.index for n in neighbors]
 distances = [n.distance for n in neighbors]
 ```
 
-### Batch Queries (Optimized)
+### Batch Queries
 
 ```julia
-# Efficient batch processing with context reuse
+# Pass a matrix and knn handles batching automatically
 # D×N layout: 1000 queries in 20D
 queries = randn(20, 1000)
-ctx = SearchContext(tree.total_clusters * 2, 10)
-
-results = knn(tree, queries, k=10, ctx=ctx)
+results = knn(tree, queries, k=10)            # sequential
+results = knn(tree, queries, k=10, parallel=true)  # multi-threaded
 ```
 
 ### Time Series Analysis
@@ -142,8 +141,9 @@ signal = randn(50000)
 ps = EmbeddedTimeSeries(signal, dim=7, delay=5)
 tree = ATRIATree(ps, min_points=64)
 
-# Find neighbors in embedded space
-neighbors = knn(tree, 1000, k=10)  # neighbors of point 1000
+# Find neighbors of point 1000 in embedded space
+query = getpoint(ps, 1000)
+neighbors = knn(tree, query, k=10)
 ```
 
 ### Range Search
@@ -153,7 +153,7 @@ neighbors = knn(tree, 1000, k=10)  # neighbors of point 1000
 neighbors = range_search(tree, query, radius=0.5)
 # Extract indices and distances from Neighbor objects
 indices = [n.index for n in neighbors]
-distances = [n.dist for n in neighbors]
+distances = [n.distance for n in neighbors]
 
 # Count neighbors (faster than range search)
 count = count_range(tree, query, radius=0.5)
@@ -161,16 +161,16 @@ count = count_range(tree, query, radius=0.5)
 
 ### Other Metrics
 
+Metrics are not exported but accessible via module-qualified names:
+
 ```julia
+using ATRIANeighbors: MaximumMetric, ExponentiallyWeightedEuclidean
+
 # Maximum (Chebyshev) metric
 tree = ATRIATree(data, metric=MaximumMetric())
 
 # Exponentially weighted Euclidean (decay factor 0 < λ ≤ 1)
 tree = ATRIATree(data, metric=ExponentiallyWeightedEuclidean(0.9))
-
-# Advanced: explicit PointSet for custom configurations
-ps = PointSet(data, MaximumMetric())
-tree = ATRIATree(ps, min_points=32)
 ```
 
 ## Algorithm Details
@@ -214,24 +214,33 @@ This provides contiguous memory access for cache-efficient distance computation.
 
 ### Tree Construction
 
-- `ATRIATree(data::Matrix; metric=EuclideanMetric(), min_points=64)` - Build tree from D×N matrix
-- `ATRIATree(ps::AbstractPointSet; min_points=64)` - Build tree from point set (advanced)
-- `PointSet(data, metric)` - Standard point set from D×N matrix
-- `EmbeddedTimeSeries(signal; dim, delay=1, metric=EuclideanMetric())` - Time-delay embedding
+- `ATRIATree(data; metric=EuclideanMetric(), min_points=64)` - Build tree from D×N matrix
+- `ATRIATree(ps::AbstractPointSet; min_points=64)` - Build tree from point set
+- `EmbeddedTimeSeries(signal; dim, delay=1)` - Time-delay embedding point set
 
 ### Search
 
-- `knn(tree, query; k=10, ctx=nothing)` - Find k nearest neighbors
-- `knn_batch(tree, queries, k)` - Batch search
+- `knn(tree, query; k=1)` - Find k nearest neighbors (single query vector)
+- `knn(tree, queries; k=1, parallel=false)` - Batch search (D×N query matrix)
 - `range_search(tree, query; radius)` - All neighbors within radius
 - `count_range(tree, query; radius)` - Count neighbors within radius
 
-### Metrics
+### Allocation-Free Batch Queries
 
-- `EuclideanMetric()` - L₂ distance
+- `SearchContext(tree, k)` - Pre-allocated context for batch queries
+
+```julia
+ctx = SearchContext(tree, k)
+for i in 1:n_queries
+    neighbors = knn(tree, queries[i], k=k, ctx=ctx)  # 1 allocation per query
+end
+```
+
+### Metrics (not exported, use via `using ATRIANeighbors: ...`)
+
+- `EuclideanMetric()` - L₂ distance (default)
 - `MaximumMetric()` - L∞ (Chebyshev) distance
-- `ExponentiallyWeightedEuclidean(lambda)` - Exponentially weighted L₂ (decay factor 0 < λ ≤ 1)
-- `SquaredEuclidean()` - For brute force only (violates triangle inequality)
+- `ExponentiallyWeightedEuclidean(lambda)` - Exponentially weighted L₂ (0 < λ ≤ 1)
 
 ## Contributing
 

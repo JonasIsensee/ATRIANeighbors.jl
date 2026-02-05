@@ -1,5 +1,8 @@
 using Test
 using ATRIANeighbors
+using ATRIANeighbors: EuclideanMetric, MaximumMetric
+using ATRIANeighbors: brute_knn, brute_range_search, brute_count_range
+using ATRIANeighbors: knn_batch
 using Random
 
 @testset "Search Algorithms" begin
@@ -310,15 +313,15 @@ end
         end
     end
 
-    @testset "knn_batch_parallel with matrix input" begin
+    @testset "knn with parallel=true (matrix input)" begin
         Random.seed!(55)
         data = rand(3, 100)  # D×N
         ps = PointSet(data, EuclideanMetric())
         tree = ATRIATree(ps, min_points=10)
 
         query_matrix = rand(3, 25)  # 25 queries in 3D
-        parallel_results = knn_batch_parallel(tree, query_matrix, k=5)
-        serial_results = knn_batch(tree, query_matrix, k=5)
+        parallel_results = knn(tree, query_matrix, k=5, parallel=true)
+        serial_results = knn(tree, query_matrix, k=5)
 
         @test length(parallel_results) == 25
 
@@ -332,14 +335,14 @@ end
         end
     end
 
-    @testset "knn_batch with track_stats" begin
+    @testset "knn batch with track_stats" begin
         Random.seed!(56)
         data = rand(3, 100)  # D×N
         ps = PointSet(data, EuclideanMetric())
         tree = ATRIATree(ps, min_points=10)
 
         query_matrix = rand(3, 5)  # 5 queries in 3D
-        results, stats = knn_batch(tree, query_matrix, k=5, track_stats=true)
+        results, stats = knn(tree, query_matrix, k=5, track_stats=true)
 
         @test length(results) == 5
         @test length(stats) == 5

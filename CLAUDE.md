@@ -133,15 +133,19 @@ ATRIA builds a binary tree for efficient nearest neighbor search using triangle 
 
 ### Module Organization
 
-- **`src/ATRIANeighbors.jl`**: Main module, exports public API
-- **`src/structures.jl`**: Core data structures (Neighbor, Cluster, SearchItem, SortedNeighborTable)
-- **`src/metrics.jl`**: Distance functions (Euclidean, Maximum, SquaredEuclidean, ExponentiallyWeighted)
+**Exported API** (11 symbols): `Neighbor`, `AbstractPointSet`, `PointSet`, `EmbeddedTimeSeries`, `getpoint`, `ATRIATree`, `print_tree_stats`, `knn`, `SearchContext`, `range_search`, `count_range`
+
+All other symbols (metrics, brute force, internal structures) are accessible via `ATRIANeighbors.symbol` or `using ATRIANeighbors: symbol`.
+
+- **`src/ATRIANeighbors.jl`**: Main module, minimal exports
+- **`src/structures.jl`**: Core data structures (Neighbor, Cluster, SearchItem — only Neighbor exported)
+- **`src/metrics.jl`**: Distance functions (EuclideanMetric, MaximumMetric, ExponentiallyWeightedEuclidean — not exported, default is EuclideanMetric)
 - **`src/pointsets.jl`**: Point set abstractions (PointSet for matrices, EmbeddedTimeSeries for time series)
 - **`src/tree.jl`**: Tree construction algorithm
 - **`src/minheap.jl`**: Custom array-based min-heap for priority queue (faster than DataStructures.jl)
-- **`src/search_optimized.jl`**: k-NN search with optional SearchContext reuse (2 allocations/~224 bytes with context reuse, vs 511 allocations/32KB without)
+- **`src/search_optimized.jl`**: k-NN search with optional SearchContext reuse (2 allocations/~224 bytes with context reuse, vs 511 allocations/32KB without). Includes batch (`knn` with matrix) and parallel (`knn(..., parallel=true)`) dispatch.
 - **`src/search.jl`**: Range search and count_range algorithms (depth-first traversal for radius queries)
-- **`src/brute.jl`**: Brute force reference implementations for validation
+- **`src/brute.jl`**: Brute force reference implementations for validation (not exported)
 
 **Note on Search Implementation**: The k-NN search is split into two implementations:
 - `search_optimized.jl` contains the production implementation with minimal allocations via `SearchContext` object pooling (reuse context for batch queries to achieve 99% allocation reduction)
@@ -178,7 +182,7 @@ All point sets expose:
 - ✅ **k-NN search** with optional SearchContext pooling (99% allocation reduction: 32KB → ~224 bytes per query when reusing context)
 - ✅ **Range search** and **count_range** (correlation sum) algorithms
 - ✅ **Brute force reference** implementations (for validation and small datasets)
-- ✅ **High-level API**: `knn()`, `knn_batch()`, `range_search()`, `count_range()`
+- ✅ **High-level API**: `knn()` (single + batch via dispatch), `range_search()`, `count_range()`
 - ✅ Custom MinHeap implementation
 - ✅ Comprehensive test suite with correctness validation
 
@@ -190,7 +194,7 @@ All point sets expose:
 ### 🚧 Optimization Opportunities (Future Work):
 - ⚠️ LoopVectorization.jl (`@turbo` macro) - **must benchmark first, may hurt performance**
 - ⚠️ StaticArrays for small fixed-size vectors (3D/4D data)
-- ⚠️ Parallel batch queries with `@threads` or distributed computing
+- ⚠️ Distributed computing for massive datasets (basic `@threads` parallelism exists via `knn(..., parallel=true)`)
 - ⚠️ Serialization/deserialization of trees for disk caching
 - ⚠️ Approximate search with epsilon parameter (API exists, could optimize traversal order)
 - ⚠️ GPU acceleration for massive batch queries
@@ -209,7 +213,7 @@ All point sets expose:
 | High-D with local structure | **BallTree** (NearestNeighbors.jl) | Better for curse of dimensionality |
 | Very high-D, approximate OK | **HNSW** (HNSW.jl) | Graph-based, sublinear scaling |
 
-**Note**: This library includes brute force implementations (`brute_knn()`) purely for **internal testing and validation**. They are not optimized for production use.
+**Note**: This library includes brute force implementations (`ATRIANeighbors.brute_knn()` etc.) purely for **internal testing and validation**. They are not exported.
 
 **Example usage:**
 ```julia
@@ -222,17 +226,16 @@ query = randn(10)
 neighbors = knn(tree, query, k=10)
 
 # ✅ GOOD: Time series with delay embedding (low intrinsic dimension)
-ts = load_lorenz_attractor()  # Chaotic time series
+ts = randn(10000)
 ps = EmbeddedTimeSeries(ts, dim=3, delay=10)
 tree = ATRIATree(ps)
+query = getpoint(ps, 1)
 neighbors = knn(tree, query, k=10)  # 3x faster than brute force
 
-# ❌ BAD: Random high-dimensional data
-data = randn(100, 10000)  # 10000 points in 100D (no structure)
-# Don't use ATRIA! Use NearestNeighbors.jl instead:
-# using NearestNeighbors
-# kdtree = KDTree(data)  # Same D×N layout
-# neighbors = knn(kdtree, query, 10)
+# ✅ GOOD: Batch queries (pass matrix, get vector of results)
+queries = randn(10, 100)
+results = knn(tree, queries, k=10)
+results = knn(tree, queries, k=10, parallel=true)  # multi-threaded
 ```
 
 ## Development Guidelines
@@ -241,6 +244,7 @@ data = randn(100, 10000)  # 10000 points in 100D (no structure)
 
 1. **Type Stability**: This implementation must be type-stable for performance. Check with `@code_warntype`:
    ```julia
+   using ATRIANeighbors: EuclideanMetric, distance
    @code_warntype distance(EuclideanMetric(), p1, p2)
    ```
 

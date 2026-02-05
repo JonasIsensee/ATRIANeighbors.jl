@@ -7,6 +7,8 @@ Detailed performance analysis to identify bottlenecks in ATRIA neighbor search.
 using Pkg
 Pkg.activate(@__DIR__)
 using ATRIANeighbors
+using ATRIANeighbors: EuclideanMetric, distance, Neighbor
+using ATRIANeighbors: SortedNeighborTable, init_search!
 using Random
 using Printf
 using Profile
