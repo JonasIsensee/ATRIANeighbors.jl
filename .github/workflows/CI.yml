@@ -20,9 +20,9 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.10'  # Minimum supported version
-          - '1.11'  # Latest stable
-          - 'nightly'
+          - "1.10" # Minimum supported version
+          - "1.11" # Latest stable
+          - "nightly"
         os:
           - ubuntu-latest
           - macOS-latest
@@ -61,3 +61,9 @@ jobs:
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
+
+      # Performance regression check (only when benchmark/baseline.json exists)
+      - name: Check performance regression
+        if: matrix.version == '1.11' && matrix.os == 'ubuntu-latest'
+        run: |
+          julia --project=benchmark -e 'using Pkg; Pkg.instantiate(); include("benchmark/baseline.jl"); exit(check_regression(0.10) ? 0 : 1)'

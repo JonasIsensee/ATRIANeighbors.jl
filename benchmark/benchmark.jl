@@ -45,11 +45,12 @@ include(joinpath(@__DIR__, "run_full_comparison.jl"))
 
 """Quick benchmark: Data distribution demonstration"""
 function cmd_quick()
-    println("ATRIA PERFORMANCE VS DATA DISTRIBUTION")
+    println("ATRIA vs NEARESTNEIGHBORS: WHEN TO USE WHICH")
     println("="^80)
-    println("\nThis benchmark demonstrates that ATRIA excels at data with")
-    println("low intrinsic dimensionality (manifold structure) but performs")
-    println("poorly on random high-dimensional data.\n")
+    println("\nNearestNeighbors.jl excels in LOW-dimensional space (e.g. 2D–5D).")
+    println("ATRIA excels for HIGH embedding dimension (e.g. 20–40D) with LOW")
+    println("fractal dimension (e.g. delay embeddings of chaotic attractors).")
+    println("\nThis quick demo shows ATRIA's pruning vs data structure:\n")
 
     Random.seed!(42)
     N, D, k = 1000, 20, 10
@@ -146,128 +147,112 @@ function cmd_quick()
     end
 end
 
-"""Generate README performance table"""
-function cmd_readme()
-    println("="^80)
-    println("ATRIANeighbors.jl Performance Benchmark")
-    println("="^80)
-    println()
-
-    # Configuration
-    N = 200_000
-    D = 3
-    k = 10
-    n_queries = 100
-
-    println("Configuration:")
-    println("  Dataset size:    N = $N points")
-    println("  Dimensions:      D = $D")
-    println("  Neighbors:       k = $k")
-    println("  Queries:         $n_queries")
-    println("  Data type:       Lorenz attractor (fractal dimension ≈ 2.06)")
-    println()
-
-    # Generate Lorenz data (returns D×N matrix)
-    println("Generating Lorenz attractor data...")
-    rng = MersenneTwister(42)
-    data = generate_dataset(:lorenz, N, D, rng=rng)  # 3×N matrix
-
-    # Generate queries (D×n_queries matrix)
-    query_indices = rand(rng, 1:N, n_queries)
-    queries = copy(data[:, query_indices])  # D×n_queries
-    queries .+= randn(rng, size(queries)...) .* 0.01
-
-    println("Building trees...")
-    println()
-
-    # ATRIA (already uses D×N layout)
-    println("ATRIA:")
+"""Run a single benchmark scenario and return (atria_build, atria_query, kdtree_build, kdtree_query, balltree_build, balltree_query, brute_query) in ms."""
+function _run_readme_scenario(data::Matrix{Float64}, queries::Matrix{Float64}, k::Int, n_queries::Int)
     ps = PointSet(data, EuclideanMetric())
+    # ATRIA
     atria_build = @benchmark ATRIATree($ps, min_points=64) samples=5
     tree_atria = ATRIATree(ps, min_points=64)
-
-    function atria_queries()
-        for i in 1:n_queries
-            ATRIANeighbors.knn(tree_atria, @view(queries[:, i]), k=k)
-        end
-    end
-    atria_queries()
     atria_query = @benchmark ATRIANeighbors.knn($tree_atria, $queries, k=$k) samples=20
     atria_build_time = median(atria_build).time / 1e6
     atria_query_time = (median(atria_query).time / 1e6) / n_queries
-    println("  Build time:  $(round(atria_build_time, digits=2)) ms")
-    println("  Query time:  $(round(atria_query_time, digits=4)) ms")
-    println()
-
-    # KDTree (also uses D×N layout)
-    println("KDTree:")
+    # KDTree
     kdtree_build = @benchmark NN.KDTree($data, leafsize=10) samples=5
     tree_kd = NN.KDTree(data, leafsize=10)
-
-    function kdtree_queries()
-        for i in 1:n_queries
-            NN.knn(tree_kd, @view(queries[:, i]), k)
-        end
-    end
-    kdtree_queries()
     kdtree_query = @benchmark NN.knn($tree_kd, $queries, $k) samples=20
     kdtree_build_time = median(kdtree_build).time / 1e6
     kdtree_query_time = (median(kdtree_query).time / 1e6) / n_queries
-    println("  Build time:  $(round(kdtree_build_time, digits=2)) ms")
-    println("  Query time:  $(round(kdtree_query_time, digits=4)) ms")
-    println()
-
     # BallTree
-    println("BallTree:")
     balltree_build = @benchmark NN.BallTree($data, leafsize=10) samples=5
     tree_ball = NN.BallTree(data, leafsize=10)
-
-    function balltree_queries()
-        for i in 1:n_queries
-            NN.knn(tree_ball, @view(queries[:, i]), k)
-        end
-    end
     balltree_query = @benchmark NN.knn($tree_ball, $queries, $k) samples=20
     balltree_build_time = median(balltree_build).time / 1e6
     balltree_query_time = (median(balltree_query).time / 1e6) / n_queries
-    println("  Build time:  $(round(balltree_build_time, digits=2)) ms")
-    println("  Query time:  $(round(balltree_query_time, digits=4)) ms")
-    println()
-
-    # Brute force
-    println("Brute force:")
-    function brute_queries()
-        for i in 1:n_queries
-            brute_knn(ps, @view(queries[:, i]), k)
-        end
-    end
+    # Brute
     brute_query = @benchmark brute_knn($ps, $queries, $k) samples=10
     brute_query_time = (median(brute_query).time / 1e6) / n_queries
-    println("  Build time:  - (no preprocessing)")
-    println("  Query time:  $(round(brute_query_time, digits=4)) ms")
-    println()
+    return (; atria_build_time, atria_query_time, kdtree_build_time, kdtree_query_time,
+            balltree_build_time, balltree_query_time, brute_query_time)
+end
 
-    # Summary table
+"""Generate README performance table: low-D (NearestNeighbors wins) vs high-D low-fractal (ATRIA wins)."""
+function cmd_readme()
     println("="^80)
-    println("SUMMARY TABLE (for README)")
+    println("ATRIANeighbors.jl Performance Benchmark (README tables)")
     println("="^80)
+    k = 10
+    n_queries = 100
+    rng = MersenneTwister(42)
+
+    # -------------------------------------------------------------------------
+    # Scenario A: Low-dimensional (3D Lorenz) — NearestNeighbors excels here
+    # -------------------------------------------------------------------------
+    N_low = 50_000
+    D_low = 3
+    println()
+    println("Scenario A: LOW-DIMENSIONAL (D=$D_low) — NearestNeighbors.jl excels")
+    println("  Lorenz attractor, N=$N_low, D=$D_low, k=$k, $n_queries queries")
+    println("  Generating data...")
+    data_low = generate_dataset(:lorenz, N_low, D_low, rng=rng)
+    query_indices_low = rand(rng, 1:N_low, n_queries)
+    queries_low = copy(data_low[:, query_indices_low])
+    queries_low .+= randn(rng, size(queries_low)...) .* 0.01
+    println("  Running benchmarks...")
+    res_low = _run_readme_scenario(data_low, queries_low, k, n_queries)
+
     println()
     println("| Algorithm | Build Time | Query Time | Speedup vs Brute |")
-    println("|-----------|-----------|------------|------------------|")
+    println("|-----------|------------|------------|------------------|")
+    @printf("| %-9s | %7.0f ms | %8.3f ms | %16.0fx |\n",
+            "ATRIA", res_low.atria_build_time, res_low.atria_query_time, res_low.brute_query_time / res_low.atria_query_time)
+    @printf("| %-9s | %7.0f ms | %8.3f ms | %16.0fx |\n",
+            "KDTree", res_low.kdtree_build_time, res_low.kdtree_query_time, res_low.brute_query_time / res_low.kdtree_query_time)
+    @printf("| %-9s | %7.0f ms | %8.3f ms | %16.0fx |\n",
+            "BallTree", res_low.balltree_build_time, res_low.balltree_query_time, res_low.brute_query_time / res_low.balltree_query_time)
+    @printf("| %-9s | %10s | %8.3f ms | %16s |\n",
+            "Brute", "-", res_low.brute_query_time, "1x")
+    best_low = min(res_low.atria_query_time, res_low.kdtree_query_time, res_low.balltree_query_time)
+    winner_low = res_low.kdtree_query_time <= res_low.atria_query_time ? "KDTree" : "ATRIA"
+    println("  → Best query time: $(winner_low) ($(round(best_low, digits=3)) ms/query)")
 
-    @printf("| %-9s | %6.0f ms | %7.2f ms | %15.0fx |\n",
-            "ATRIA", atria_build_time, atria_query_time, brute_query_time/atria_query_time)
-    @printf("| %-9s | %6.0f ms | %7.2f ms | %15.0fx |\n",
-            "KDTree", kdtree_build_time, kdtree_query_time, brute_query_time/kdtree_query_time)
-    @printf("| %-9s | %6.0f ms | %7.2f ms | %15.0fx |\n",
-            "BallTree", balltree_build_time, balltree_query_time, brute_query_time/balltree_query_time)
-    @printf("| %-9s | %9s | %7.2f ms | %15s |\n",
-            "Brute", "-", brute_query_time, "1x")
+    # -------------------------------------------------------------------------
+    # Scenario B: High-D, low fractal (delay-embedded Lorenz) — ATRIA excels
+    # -------------------------------------------------------------------------
+    N_high = 50_000
+    D_high = 24   # 20–40D with low fractal dimension is ATRIA's sweet spot
     println()
+    println("Scenario B: HIGH-DIMENSIONAL, LOW FRACTAL DIMENSION (D=$D_high) — ATRIA excels")
+    println("  Delay-embedded Lorenz attractor, N=$N_high, D=$D_high, k=$k, $n_queries queries")
+    println("  (Embedding dimension $D_high, fractal dimension ≈ 2.06)")
+    println("  Generating data...")
+    data_high = generate_dataset(:lorenz_delay, N_high, D_high, rng=rng)
+    query_indices_high = rand(rng, 1:N_high, n_queries)
+    queries_high = copy(data_high[:, query_indices_high])
+    queries_high .+= randn(rng, size(queries_high)...) .* 0.01
+    println("  Running benchmarks...")
+    res_high = _run_readme_scenario(data_high, queries_high, k, n_queries)
 
-    atria_speedup = kdtree_query_time / atria_query_time
-    println("Performance relative to KDTree:")
-    println("  ATRIA is $(round(atria_speedup, digits=2))x vs KDTree")
+    println()
+    println("| Algorithm | Build Time | Query Time | Speedup vs Brute |")
+    println("|-----------|------------|------------|------------------|")
+    @printf("| %-9s | %7.0f ms | %8.3f ms | %16.0fx |\n",
+            "ATRIA", res_high.atria_build_time, res_high.atria_query_time, res_high.brute_query_time / res_high.atria_query_time)
+    @printf("| %-9s | %7.0f ms | %8.3f ms | %16.0fx |\n",
+            "KDTree", res_high.kdtree_build_time, res_high.kdtree_query_time, res_high.brute_query_time / res_high.kdtree_query_time)
+    @printf("| %-9s | %7.0f ms | %8.3f ms | %16.0fx |\n",
+            "BallTree", res_high.balltree_build_time, res_high.balltree_query_time, res_high.brute_query_time / res_high.balltree_query_time)
+    @printf("| %-9s | %10s | %8.3f ms | %16s |\n",
+            "Brute", "-", res_high.brute_query_time, "1x")
+    best_high = min(res_high.atria_query_time, res_high.kdtree_query_time, res_high.balltree_query_time)
+    winner_high = res_high.atria_query_time <= res_high.kdtree_query_time ? "ATRIA" : "KDTree"
+    println("  → Best query time: $(winner_high) ($(round(best_high, digits=3)) ms/query)")
+
+    println()
+    println("="^80)
+    println("SUMMARY (copy tables above into README)")
+    println("="^80)
+    println("Low-D (3D):     NearestNeighbors (KDTree/BallTree) typically wins.")
+    println("High-D low-Df: ATRIA typically wins (delay embeddings of chaotic attractors).")
     println()
 end
 

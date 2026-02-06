@@ -76,6 +76,35 @@ function generate_lorenz_attractor(N::Int, dt::Float64=0.01;
 end
 
 """
+    generate_lorenz_delay_embedded(N::Int, D::Int; delay::Int=5, dt::Float64=0.01, ...)
+
+Generate N points in D dimensions by time-delay embedding of the x-coordinate of the Lorenz attractor.
+
+This produces high embedding dimension (D) with low fractal dimension (~2.06), which is the regime
+where ATRIA excels. NearestNeighbors (KDTree/BallTree) typically struggle in high D.
+
+Returns a matrix of size D×N (each column is one delay-embedded vector).
+Parameters: delay = time step between embedding coordinates; dt, σ, ρ, β, transient as in generate_lorenz_attractor.
+"""
+function generate_lorenz_delay_embedded(N::Int, D::Int; delay::Int=5, dt::Float64=0.01,
+                                       σ::Float64=10.0, ρ::Float64=28.0, β::Float64=8.0/3.0,
+                                       transient::Int=1000, rng::AbstractRNG=Random.GLOBAL_RNG)
+    # Need trajectory length: N + (D - 1) * delay
+    traj_len = N + (D - 1) * delay + transient
+    lorenz_3d = generate_lorenz_attractor(traj_len, dt; σ=σ, ρ=ρ, β=β, transient=transient, rng=rng)
+    # Use x-coordinate (first row); skip transient
+    x_series = lorenz_3d[1, (transient+1):end]   # length = N + (D-1)*delay
+    # Build delay-embedded matrix D×N
+    points = zeros(D, N)
+    for i in 1:N
+        for d in 1:D
+            points[d, i] = x_series[i + (d - 1) * delay]
+        end
+    end
+    return points
+end
+
+"""
     generate_rossler_attractor(N::Int, dt::Float64=0.05;
                                a::Float64=0.2, b::Float64=0.2, c::Float64=5.7,
                                transient::Int=1000, rng::AbstractRNG=Random.GLOBAL_RNG) -> Matrix{Float64}
@@ -508,6 +537,7 @@ Generate a dataset by name. All return D×N matrices (each column is a point).
 
 Supported types:
 - :lorenz - Lorenz attractor (ignores D, always 3D)
+- :lorenz_delay - Delay-embedded Lorenz (D dimensions, low fractal dimension; ATRIA regime)
 - :rossler - Rössler attractor (ignores D, always 3D)
 - :henon - Henon map (ignores D, always 2D)
 - :logistic - Logistic map (ignores D, always 1D, returns as 1×N matrix)
@@ -529,6 +559,9 @@ Additional keyword arguments are passed to the specific generator.
 function generate_dataset(dataset_type::Symbol, N::Int, D::Int; kwargs...)
     if dataset_type == :lorenz
         return generate_lorenz_attractor(N; kwargs...)
+    elseif dataset_type == :lorenz_delay
+        delay = get(kwargs, :delay, 5)
+        return generate_lorenz_delay_embedded(N, D; delay=delay, kwargs...)
     elseif dataset_type == :rossler
         return generate_rossler_attractor(N; kwargs...)
     elseif dataset_type == :henon
@@ -568,7 +601,7 @@ function generate_dataset(dataset_type::Symbol, N::Int, D::Int; kwargs...)
 end
 
 # Export all generators
-export generate_lorenz_attractor, generate_rossler_attractor, generate_henon_map, generate_logistic_map
+export generate_lorenz_attractor, generate_lorenz_delay_embedded, generate_rossler_attractor, generate_henon_map, generate_logistic_map
 export generate_gaussian_mixture, generate_hierarchical_clusters
 export generate_swiss_roll, generate_s_curve, generate_sphere, generate_torus
 export generate_uniform_hypercube, generate_uniform_hypersphere, generate_gaussian
