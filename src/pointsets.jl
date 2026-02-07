@@ -159,8 +159,9 @@ Optimized for D×N layout where columns are points (contiguous memory access).
 """
 @inline function _euclidean_distance_col(data::Matrix{T}, col::Int, query) where T
     sum_sq = zero(T)
-    @turbo for j in 1:size(data, 1)
-        diff = data[j, col] - query[j]
+    #@turbo
+    @simd for j in 1:size(data, 1)
+        @inbounds diff = data[j, col] - query[j]
         sum_sq += diff * diff
     end
     return sqrt(sum_sq)

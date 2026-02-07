@@ -21,3 +21,4 @@ profiling/**/*.txt
 benchmark/*.dat
 benchmark/*.csv
 benchmark/results/
+benchmark/baseline.json
