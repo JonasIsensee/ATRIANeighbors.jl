@@ -424,6 +424,16 @@ function build_tree!(
 
             # Handle edge case: partition failed (all points went to one side)
             if left_length <= 0 || right_length <= 0
+                # ⚠️ BUG FIX: When partition is degenerate, distances in the section
+                # are still relative to parent's center (or mixed). We must update
+                # ALL distances to THIS cluster's center before making it terminal.
+                center_point = getpoint(points, cluster.center)
+                for i in start_idx:(start_idx + length - 1)
+                    point_idx = permutation[i].index
+                    dist = distance(points, point_idx, center_point)
+                    permutation[i] = Neighbor(point_idx, dist)
+                end
+
                 # Make this a terminal node
                 cluster.Rmax = -abs(cluster.Rmax)
                 cluster.start = start_idx

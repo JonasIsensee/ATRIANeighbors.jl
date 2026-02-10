@@ -12,6 +12,9 @@ using ATRIANeighbors
     include("test_tree.jl")
     include("test_search.jl")
 
+    # Regression tests
+    include("test_self_search.jl")
+
     # Comprehensive correctness validation
     include("test_correctness.jl")
 end
